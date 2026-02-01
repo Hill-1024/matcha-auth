@@ -1,0 +1,7 @@
+{
+  "name": "Matcha Auth",
+  "description": "A Material You (Monet) styled 2FA Token Authenticator with dynamic theming capabilities.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
