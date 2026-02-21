@@ -14,9 +14,9 @@ function generateBuildInfo() {
     
     const buildInfo = {
       appName: pkg.metadata?.name || pkg.name,
-      version: pkg.version,
+      version: pkg.version || 'ERROR',
       environment: pkg.appConfig?.environment || 'Development',
-      ProjectUrl: pkg.appConfig?.flavor || 'None',
+      ProjectUrl: pkg.appConfig?.ProjectUrl || 'None',
       buildTime: new Date().toLocaleString('zh-CN', { hour12: false}),
       description: pkg.description
     };

@@ -1,18 +1,18 @@
 {
   "name": "matcha-auth",
-  "version": "2.4.0",
+  "version": "2.5.2",
   "description": "A Material You styled 2FA Token Authenticator",
   "main": "index.html",
   "type": "module",
   "appConfig": {
     "environment": "Capacitor/Android",
-    "ProjectUrl": "None"
+    "ProjectUrl": "https://github.com/Hill-1024/matcha-auth"
   },
   "scripts": {
     "generate-info": "node scripts/generate-build-info.js",
     "dev": "npm run generate-info && vite",
-    "sync-version": "node scripts/sync-version.js",
-    "build": "npm run generate-info && npm run sync-version && tsc && vite build",
+    "sync-version": "node update-version.js",
+    "build": "npm run generate-info && npm run sync-version && tsc && vite build && npx cap sync",
     "preview": "vite preview",
     "cap:add": "npx cap add android",
     "cap:sync": "npm run build && npx capacitor-assets generate --android && node update-version.js && npx cap sync",
@@ -20,22 +20,31 @@
     "generate-icons": "npx capacitor-assets generate"
   },
   "dependencies": {
-    "@capacitor/android": "^6.0.0",
-    "@capacitor/app": "^6.0.0",
-    "@capacitor/camera": "^6.0.0",
-    "@capacitor/core": "^6.0.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "@capacitor/android": "^8.1.0",
+    "@capacitor/app": "^8.0.1",
+    "@capacitor/camera": "^8.0.1",
+    "@capacitor/core": "^8.1.0",
+    "@capacitor/status-bar": "^8.0.1",
+    "android-dynamic-color": "github:Hill-1024/Monet-Color-For-Capacitor",
+    "framer-motion": "^12.34.3",
+    "jsqr": "^1.4.0",
     "otpauth": "^9.2.2",
     "qrcode": "^1.5.3",
-    "jsqr": "^1.4.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "overrides": {
+    "android-dynamic-color": {
+      "@capacitor/core": "$@capacitor/core",
+      "@capacitor/android": "$@capacitor/android"
+    }
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "^6.0.0",
+    "@capacitor/cli": "^8.1.0",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@types/qrcode": "^1.5.5",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",

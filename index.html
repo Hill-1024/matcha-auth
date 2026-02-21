@@ -49,6 +49,34 @@
       }
     }
   </script>
+  <script>
+    (function() {
+      try {
+        // 1. Apply Dark Mode
+        var themeMode = localStorage.getItem('matcha_theme_mode') || 'system';
+        var isDark = false;
+        if (themeMode === 'dark') {
+          isDark = true;
+        } else if (themeMode === 'system') {
+          isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+
+        // 2. Apply Cached Theme CSS Variables
+        var cachedCss = localStorage.getItem('matcha_cached_theme_css');
+        if (cachedCss) {
+          document.documentElement.style.cssText = cachedCss;
+        }
+      } catch (e) {
+        console.error('Error applying initial theme:', e);
+      }
+    })();
+  </script>
   <style>
     /* Base CSS Variables - Default "Matcha" Theme */
     :root {
@@ -157,10 +185,15 @@
     }
 
     /* Smooth transitions for theme changes */
-    * {
+    body:not(.preload) * {
       transition-property: background-color, border-color, color, fill, stroke;
       transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
       transition-duration: 200ms;
+    }
+
+    /* Prevent transitions during load */
+    .preload * {
+      transition: none !important;
     }
   </style>
   <script type="importmap">
@@ -178,12 +211,13 @@
         "jsqr": "https://esm.sh/jsqr@1.4.0",
         "otpauth": "https://esm.sh/otpauth@^9.4.1",
         "@capacitor/core": "https://esm.sh/@capacitor/core@^8.0.1",
-        "@capacitor/camera": "https://esm.sh/@capacitor/camera@^8.0.0"
+        "@capacitor/camera": "https://esm.sh/@capacitor/camera@^8.0.0",
+        "@capacitor/status-bar": "https://esm.sh/@capacitor/status-bar@^8.0.0"
       }
     }
   </script>
 </head>
-<body class="bg-background text-on-background font-display antialiased selection:bg-primary-container selection:text-primary">
+<body class="bg-background text-on-background font-display antialiased selection:bg-primary-container selection:text-primary preload">
 <div id="root"></div>
 <!-- 关键修复：添加入口脚本，否则 React 不会启动 -->
 <script type="module" src="/index.tsx"></script>
