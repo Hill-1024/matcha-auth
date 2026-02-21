@@ -3,6 +3,7 @@ import jsQR from 'jsqr';
 import { Capacitor } from '@capacitor/core';
 import { Camera } from '@capacitor/camera';
 import { CloseIcon } from './Icons';
+import { motion } from 'framer-motion';
 
 interface ScannerModalProps {
     onScan: (data: string) => void;
@@ -137,7 +138,12 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ onScan, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black flex flex-col"
+        >
             {/* 1. Fullscreen Video Feed */}
             <div className="relative flex-1 bg-black overflow-hidden">
                 <video
@@ -157,19 +163,22 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ onScan, onClose }) => {
                     <div className="absolute top-[15%] left-[10%] right-[10%] bottom-[35%] rounded-[2.5rem] shadow-[0_0_0_5000px_rgba(0,0,0,0.6)]"></div>
 
                     {/*
-                Layer 2: The Decorations (Border, Corners, Laser)
-                Placed in a sibling div to ensure they sit ON TOP of the mask/shadow and aren't obscured.
+                Layer 2: The Decorations (Minimalist Border)
+                Removed the heavy theme-colored corners for a cleaner look.
             */}
                     <div className="absolute top-[15%] left-[10%] right-[10%] bottom-[35%] rounded-[2.5rem] overflow-hidden border border-white/20">
-                        {/* Corners - Adjusted to match the container radius */}
-                        <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-[1.5rem]"></div>
-                        <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-[1.5rem]"></div>
-                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-[1.5rem]"></div>
-                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-[1.5rem]"></div>
-
                         {/* Scanning Laser (GPU Accelerated) */}
                         {!isInitializing && (
-                            <div className="absolute top-0 inset-x-4 h-0.5 bg-primary shadow-[0_0_15px_rgba(var(--md-sys-color-primary),1)] animate-scan rounded-full"></div>
+                            <motion.div
+                                initial={{ top: 0, opacity: 0 }}
+                                animate={{ top: "100%", opacity: [0, 1, 1, 0] }}
+                                transition={{
+                                    repeat: Infinity,
+                                    duration: 2,
+                                    ease: "linear"
+                                }}
+                                className="absolute inset-x-4 h-0.5 bg-white/50 shadow-[0_0_15px_rgba(255,255,255,0.5)] rounded-full"
+                            />
                         )}
                     </div>
                 </div>
@@ -196,9 +205,13 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ onScan, onClose }) => {
                 )}
 
                 {!isInitializing && !error && (
-                    <p className="text-white/80 text-sm font-medium px-6 py-2 bg-black/30 backdrop-blur-md rounded-full border border-white/5 animate-in fade-in zoom-in-95 duration-500">
+                    <motion.p
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-white/80 text-sm font-medium px-6 py-2 bg-black/30 backdrop-blur-md rounded-full border border-white/5"
+                    >
                         对准二维码即可自动识别
-                    </p>
+                    </motion.p>
                 )}
 
                 {error && (
@@ -216,7 +229,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ onScan, onClose }) => {
                     </div>
                 )}
             </div>
-        </div>
+        </motion.div>
     );
 };
 
