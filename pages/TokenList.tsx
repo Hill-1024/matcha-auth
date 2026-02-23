@@ -9,6 +9,7 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Toast from '../components/Toast';
 import { generateTotpValues, parseOtpauthUri } from '../services/totpService';
 import { parseMigrationUri } from '../services/migrationService';
+import { initIconService } from '../services/iconService';
 import {
     SettingsIcon,
     SearchIcon,
@@ -33,6 +34,11 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
         return saved ? JSON.parse(saved) : [];
     });
 
+    // Init Icon Service
+    useEffect(() => {
+        initIconService();
+    }, []);
+
     const [search, setSearch] = useState('');
     const [exportData, setExportData] = useState<Token | Token[] | null>(null);
     const [selectedToken, setSelectedToken] = useState<Token | null>(null); // For ActionSheet
@@ -51,6 +57,10 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
     useEffect(() => {
         localStorage.setItem('matcha_tokens', JSON.stringify(tokens));
     }, [tokens]);
+
+    const handleUpdateToken = useCallback((id: string, updates: Partial<Token>) => {
+        setTokens(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    }, []);
 
     // The Heartbeat: Update TOTP codes every second
     useEffect(() => {
@@ -123,7 +133,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                 }
             } catch (error) {
                 console.error("Migration parsing error:", error);
-                alert("解析批量导入二维码失败");
+                alert("解析批量导入QR Code失败");
             }
             return;
         }
@@ -264,6 +274,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                                 <TokenCard
                                     token={token}
                                     onCopy={handleCopy}
+                                    onUpdateToken={handleUpdateToken}
                                     onMoreClick={(t) => {
                                         setSelectedToken(t);
                                         setOnTheTop('actionSheet');
@@ -323,7 +334,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                         >
                             {/* Sub FAB: Scan */}
                             <motion.div variants={itemVariants} className="flex items-center gap-3">
-                                <span className="bg-surface-container-high text-on-surface text-sm font-bold px-3 py-1.5 rounded-xl shadow-sm border border-outline/10">二维码导入</span>
+                                <span className="bg-surface-container-high text-on-surface text-sm font-bold px-3 py-1.5 rounded-xl shadow-sm border border-outline/10">扫描导入</span>
                                 <button
                                     onClick={() => {
                                         setOnTheTop('scanner');
