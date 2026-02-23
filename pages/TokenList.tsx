@@ -8,6 +8,7 @@ import ActionSheet from '../components/ActionSheet';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Toast from '../components/Toast';
 import { generateTotpValues, parseOtpauthUri } from '../services/totpService';
+import { parseMigrationUri } from '../services/migrationService';
 import {
     SettingsIcon,
     SearchIcon,
@@ -15,7 +16,8 @@ import {
     SearchOffIcon,
     AddIcon,
     QrCodeScannerIcon,
-    KeyboardIcon
+    KeyboardIcon,
+    ExportIcon
 } from '../components/Icons';
 
 interface TokenListProps {
@@ -33,7 +35,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
 
     const [search, setSearch] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [exportToken, setExportToken] = useState<Token | null>(null);
+    const [exportData, setExportData] = useState<Token | Token[] | null>(null);
     const [selectedToken, setSelectedToken] = useState<Token | null>(null); // For ActionSheet
     const [tokenToDelete, setTokenToDelete] = useState<Token | null>(null); // For DeleteConfirmModal
     const [isFabOpen, setIsFabOpen] = useState(false); // Controls the FAB Menu
@@ -109,6 +111,25 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
 
     // Use useCallback to ensure the function reference remains stable across re-renders.
     const handleScanSuccess = useCallback((uri: string) => {
+        if (uri.startsWith('otpauth-migration://')) {
+            try {
+                const newTokens = parseMigrationUri(uri);
+                if (newTokens.length > 0) {
+                    setTokens(prev => [...newTokens, ...prev]);
+                    setIsScannerOpen(false);
+                    setToastMessage(`成功导入 ${newTokens.length} 个令牌`);
+                    setIsToastVisible(true);
+                    setTimeout(() => setIsToastVisible(false), 2000);
+                } else {
+                    alert("未找到有效的令牌");
+                }
+            } catch (error) {
+                console.error("Migration parsing error:", error);
+                alert("解析批量导入二维码失败");
+            }
+            return;
+        }
+
         const parsed = parseOtpauthUri(uri);
         if (parsed && parsed.secret) {
             const newToken: Token = {
@@ -186,10 +207,16 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
             <div className="sticky top-0 z-20 flex items-center justify-between bg-surface dark:bg-surface p-4 pt-12 shadow-sm transition-colors">
                 <h2 className="text-on-surface text-3xl font-bold leading-tight tracking-tight flex-1">令牌</h2>
                 <div className="flex items-center justify-end gap-3">
-                    {/* Removed QrCodeScannerIcon from here */}
+                    <button
+                        onClick={() => setExportData(tokens)}
+                        className="flex items-center justify-center rounded-full h-10 w-10 bg-surface-container-high text-on-surface-variant hover:bg-surface-variant transition-colors"
+                        title="批量导出">
+                        <ExportIcon className="w-5 h-5" />
+                    </button>
                     <button
                         onClick={onSettingsClick}
-                        className="flex items-center justify-center rounded-full h-10 w-10 bg-surface-container-high text-on-surface-variant hover:bg-surface-variant transition-colors">
+                        className="flex items-center justify-center rounded-full h-10 w-10 bg-surface-container-high text-on-surface-variant hover:bg-surface-variant transition-colors"
+                        title="设置">
                         <SettingsIcon className="w-5 h-5" />
                     </button>
                 </div>
@@ -329,7 +356,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
                     token={selectedToken}
                     onClose={() => setSelectedToken(null)}
                     onExport={() => {
-                        setExportToken(selectedToken);
+                        setExportData(selectedToken);
                         setSelectedToken(null);
                     }}
                     onDelete={() => {
@@ -357,8 +384,8 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
 
             {/* Export QR */}
             <AnimatePresence>
-                {exportToken && (
-                    <ExportModal token={exportToken} onClose={() => setExportToken(null)} />
+                {exportData && (
+                    <ExportModal data={exportData} onClose={() => setExportData(null)} />
                 )}
             </AnimatePresence>
 

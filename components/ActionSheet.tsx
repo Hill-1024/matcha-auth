@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Token } from '../types';
 import { QrCodeScannerIcon, KeyIcon, DeleteIcon } from './Icons';
 
@@ -13,13 +14,22 @@ const ActionSheet: React.FC<ActionSheetProps> = ({ token, onClose, onExport, onD
   return (
       <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
         {/* Backdrop */}
-        <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={onClose}
-        ></div>
+        />
 
         {/* Sheet Content */}
-        <div className="relative w-full max-w-sm bg-surface-container rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-xl animate-in slide-in-from-bottom duration-300">
+        <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="relative w-full max-w-sm bg-surface-container rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-xl z-10"
+        >
           {/* Handle bar for mobile feel */}
           <div className="w-12 h-1.5 bg-on-surface-variant/20 rounded-full mx-auto mb-6 sm:hidden"></div>
 
@@ -40,7 +50,8 @@ const ActionSheet: React.FC<ActionSheetProps> = ({ token, onClose, onExport, onD
 
           {/* Actions */}
           <div className="flex flex-col gap-2">
-            <button
+            <motion.button
+                whileTap={{ scale: 0.96 }}
                 onClick={onExport}
                 className="flex items-center gap-4 w-full p-4 rounded-xl bg-surface-container-high hover:bg-surface-variant transition-colors text-on-surface"
             >
@@ -51,9 +62,10 @@ const ActionSheet: React.FC<ActionSheetProps> = ({ token, onClose, onExport, onD
                 <span className="font-semibold">导出二维码</span>
                 <span className="text-xs text-on-surface-variant">显示用于迁移的二维码</span>
               </div>
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
+                whileTap={{ scale: 0.96 }}
                 onClick={onDelete}
                 className="flex items-center gap-4 w-full p-4 rounded-xl bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-600 dark:text-red-400 mt-2"
             >
@@ -64,7 +76,7 @@ const ActionSheet: React.FC<ActionSheetProps> = ({ token, onClose, onExport, onD
                 <span className="font-semibold">移除令牌</span>
                 <span className="text-xs opacity-70">此操作无法撤销</span>
               </div>
-            </button>
+            </motion.button>
           </div>
 
           {/* Cancel Button */}
@@ -74,7 +86,7 @@ const ActionSheet: React.FC<ActionSheetProps> = ({ token, onClose, onExport, onD
           >
             取消
           </button>
-        </div>
+        </motion.div>
       </div>
   );
 };

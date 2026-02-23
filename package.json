@@ -1,6 +1,6 @@
 {
   "name": "matcha-auth",
-  "version": "2.5.3",
+  "version": "2.5.4",
   "description": "A Material You styled 2FA Token Authenticator",
   "main": "index.html",
   "type": "module",
@@ -29,6 +29,7 @@
     "framer-motion": "^12.34.3",
     "jsqr": "^1.4.0",
     "otpauth": "^9.2.2",
+    "protobufjs": "^8.0.0",
     "qrcode": "^1.5.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
