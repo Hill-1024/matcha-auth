@@ -126,7 +126,7 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({
                 {/* Theme Mode Selector (Segmented Control) */}
                 <div className="flex flex-col gap-3">
                     <h3 className="text-lg font-bold text-on-surface px-2">外观模式</h3>
-                    <div className="flex bg-surface-container-high p-1 rounded-full border border-outline/5">
+                    <div className="flex bg-surface-container-high p-1 rounded-full border border-outline/10 dark:border-white/5">
                         <button
                             onClick={() => setThemeMode('light')}
                             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full text-sm font-bold transition-all duration-200 ${themeMode === 'light' ? 'bg-surface shadow-md text-primary scale-100' : 'text-on-surface-variant hover:text-on-surface scale-95 opacity-70 hover:opacity-100'}`}
@@ -156,7 +156,7 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({
                     <div className="flex flex-col gap-3">
                         <h3 className="text-lg font-bold text-on-surface px-2">动态取色 (Monet)</h3>
                         <div
-                            className="flex items-center justify-between bg-surface-container-high p-4 rounded-[2rem] border border-outline/5 cursor-pointer hover:bg-surface-variant/50 transition-colors"
+                            className="flex items-center justify-between bg-surface-container-high p-4 rounded-[2rem] border border-outline/10 dark:border-white/5 cursor-pointer hover:bg-surface-variant/50 transition-colors"
                             onClick={() => {
                                 if (selectedPreset === 'Dynamic') {
                                     setSelectedPreset('Matcha');
@@ -217,7 +217,7 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({
 
                         <button
                             onClick={() => setSelectedPreset('Custom')}
-                            className={`group relative size-14 shrink-0 rounded-full border-2 bg-surface-container transition-all hover:scale-105 active:scale-95 flex items-center justify-center ${selectedPreset === 'Custom' ? 'border-primary' : 'border-outline/20'}`}>
+                            className={`group relative size-14 shrink-0 rounded-full border-2 bg-surface-container transition-all hover:scale-105 active:scale-95 flex items-center justify-center ${selectedPreset === 'Custom' ? 'border-primary' : 'border-outline/20 dark:border-white/10'}`}>
                             <TuneIcon className="w-6 h-6 text-on-surface-variant" />
                             <span className="absolute -bottom-6 text-xs font-medium text-on-surface-variant whitespace-nowrap">自定义</span>
                         </button>
@@ -231,14 +231,14 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
-                            className="rounded-3xl bg-surface p-5 shadow-sm border border-outline/10 mt-2 overflow-hidden"
+                            className="rounded-3xl bg-surface p-5 shadow-sm border border-outline/10 dark:border-white/5 mt-2 overflow-hidden"
                         >
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-2">
                                     <PaletteIcon className="w-5 h-5 text-on-surface-variant" />
                                     <span className="text-sm font-bold text-on-surface">自定义 RGB</span>
                                 </div>
-                                <div className="size-6 rounded-full border border-outline/10 shadow-sm" style={{ backgroundColor: rgbToHex(customRgb) }}></div>
+                                <div className="size-6 rounded-full border border-outline/10 dark:border-white/10 shadow-sm" style={{ backgroundColor: rgbToHex(customRgb) }}></div>
                             </div>
 
                             <div className="flex flex-col gap-5">
@@ -300,7 +300,7 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({
                 {/* About App Section */}
                 <div className="flex flex-col gap-4 mt-6">
                     <h3 className="text-lg font-bold text-on-surface px-2">关于应用</h3>
-                    <div className="bg-surface-container rounded-3xl p-5 shadow-sm border border-outline/10 flex flex-col gap-4">
+                    <div className="bg-surface-container rounded-3xl p-5 shadow-sm border border-outline/10 dark:border-white/5 flex flex-col gap-4">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-surface rounded-full text-primary">
                                 <InfoIcon className="w-6 h-6" />
