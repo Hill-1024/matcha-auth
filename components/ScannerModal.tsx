@@ -15,6 +15,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ onScan, onClose }) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const requestRef = useRef<number>(0);
     const lastScanRef = useRef<number>(0); // To throttle scanning frequency
+    const hasScannedRef = useRef<boolean>(false); // Prevent multiple scans
     const [error, setError] = useState<string>('');
     const [isInitializing, setIsInitializing] = useState(true);
 
@@ -93,6 +94,8 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ onScan, onClose }) => {
         }
         lastScanRef.current = now;
 
+        if (hasScannedRef.current) return;
+
         if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
             // Create canvas once
             if (!canvasRef.current) {
@@ -130,6 +133,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ onScan, onClose }) => {
 
                 if (code && code.data && code.data.length > 0) {
                     // Double check it's not empty
+                    hasScannedRef.current = true;
                     onScan(code.data);
                     // Note: We don't stop the loop here strictly, but the parent component usually unmounts us.
                 }
