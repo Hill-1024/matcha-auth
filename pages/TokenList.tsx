@@ -442,7 +442,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            className="relative bg-surface-container w-full max-w-sm rounded-[2rem] p-6 shadow-xl border border-outline/10 z-10"
+                            className="relative bg-surface-container w-full max-w-sm rounded-[2rem] p-6 shadow-xl border border-outline/10 dark:border-white/5 z-10"
                         >
                             <h3 className="text-xl font-bold text-on-surface mb-1">添加令牌</h3>
                             <p className="text-sm text-on-surface-variant mb-6">手动输入密钥详情</p>
