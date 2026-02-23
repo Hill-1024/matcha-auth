@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, Variants, LayoutGroup } from 'framer-motion';
-import { Token } from '../types';
+import { Token, PopupType } from '../types';
 import TokenCard from '../components/TokenCard';
 import ScannerModal from '../components/ScannerModal';
 import ExportModal from '../components/ExportModal';
@@ -22,11 +22,11 @@ import {
 
 interface TokenListProps {
     onSettingsClick: () => void;
-    isScannerOpen: boolean;
-    setIsScannerOpen: (isOpen: boolean) => void;
+    onTheTop: PopupType;
+    setOnTheTop: (popup: PopupType) => void;
 }
 
-const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, setIsScannerOpen }) => {
+const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnTheTop }) => {
     // Load initial state from local storage or empty array
     const [tokens, setTokens] = useState<Token[]>(() => {
         const saved = localStorage.getItem('matcha_tokens');
@@ -34,11 +34,9 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
     });
 
     const [search, setSearch] = useState('');
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [exportData, setExportData] = useState<Token | Token[] | null>(null);
     const [selectedToken, setSelectedToken] = useState<Token | null>(null); // For ActionSheet
     const [tokenToDelete, setTokenToDelete] = useState<Token | null>(null); // For DeleteConfirmModal
-    const [isFabOpen, setIsFabOpen] = useState(false); // Controls the FAB Menu
 
     // Toast State
     const [toastMessage, setToastMessage] = useState('');
@@ -105,7 +103,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
         };
 
         setTokens(prev => [newToken, ...prev]);
-        setIsAddModalOpen(false);
+        setOnTheTop('none');
         resetForm();
     };
 
@@ -116,7 +114,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
                 const newTokens = parseMigrationUri(uri);
                 if (newTokens.length > 0) {
                     setTokens(prev => [...newTokens, ...prev]);
-                    setIsScannerOpen(false);
+                    setOnTheTop('none');
                     setToastMessage(`成功导入 ${newTokens.length} 个令牌`);
                     setIsToastVisible(true);
                     setTimeout(() => setIsToastVisible(false), 2000);
@@ -131,28 +129,33 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
         }
 
         const parsed = parseOtpauthUri(uri);
-        if (parsed && parsed.secret) {
-            const newToken: Token = {
+        const validParsed = parsed ? parsed.filter((p): p is Partial<Token> & { secret: string } => !!p.secret) : [];
+
+        if (validParsed.length > 0) {
+            const newTokens = validParsed.map(p => ({
                 id: Math.random().toString(36).substr(2, 9),
-                issuer: parsed.issuer || 'Unknown',
-                account: parsed.account || 'Account',
-                secret: parsed.secret,
+                issuer: p.issuer || 'Unknown',
+                account: p.account || 'Account',
+                secret: p.secret,
                 code: 'Loading',
                 icon: 'key',
-                period: parsed.period || 30,
+                period: p.period || 30,
                 remaining: 30
-            };
-            setTokens(prev => [newToken, ...prev]);
-            setIsScannerOpen(false);
+            }));
+            setTokens(prev => [...newTokens, ...prev]);
+            setOnTheTop('none');
+            setToastMessage(`成功导入 ${newTokens.length} 个令牌`);
+            setIsToastVisible(true);
+            setTimeout(() => setIsToastVisible(false), 2000);
         } else {
             alert("无效的二维码");
         }
-    }, [setIsScannerOpen]);
+    }, [setOnTheTop]);
 
     const confirmDelete = () => {
         if (tokenToDelete) {
             setTokens(prev => prev.filter(t => t.id !== tokenToDelete.id));
-            setTokenToDelete(null);
+            setOnTheTop('none');
         }
     };
 
@@ -208,7 +211,10 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
                 <h2 className="text-on-surface text-3xl font-bold leading-tight tracking-tight flex-1">令牌</h2>
                 <div className="flex items-center justify-end gap-3">
                     <button
-                        onClick={() => setExportData(tokens)}
+                        onClick={() => {
+                            setExportData(tokens);
+                            setOnTheTop('export');
+                        }}
                         className="flex items-center justify-center rounded-full h-10 w-10 bg-surface-container-high text-on-surface-variant hover:bg-surface-variant transition-colors"
                         title="批量导出">
                         <ExportIcon className="w-5 h-5" />
@@ -258,7 +264,10 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
                                 <TokenCard
                                     token={token}
                                     onCopy={handleCopy}
-                                    onMoreClick={(t) => setSelectedToken(t)}
+                                    onMoreClick={(t) => {
+                                        setSelectedToken(t);
+                                        setOnTheTop('actionSheet');
+                                    }}
                                 />
                             </motion.div>
                         ))}
@@ -273,7 +282,9 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
                     >
                         <SearchOffIcon className="w-16 h-16 mb-4" />
                         <p className="text-lg font-medium">无令牌</p>
-                        <button onClick={() => setIsAddModalOpen(true)} className="mt-4 text-primary font-bold">
+                        <button onClick={() => {
+                            setOnTheTop('addModal');
+                        }} className="mt-4 text-primary font-bold">
                             添加一个?
                         </button>
                     </motion.div>
@@ -289,20 +300,20 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
 
             {/* FAB Group */}
             <AnimatePresence>
-                {isFabOpen && (
+                {onTheTop === 'fab' && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-20 bg-black/20 backdrop-blur-[2px]"
-                        onClick={() => setIsFabOpen(false)}
+                        onClick={() => setOnTheTop('none')}
                     />
                 )}
             </AnimatePresence>
 
             <div className="fixed bottom-8 right-5 z-30 flex flex-col items-end pointer-events-none">
                 <AnimatePresence>
-                    {isFabOpen && (
+                    {onTheTop === 'fab' && (
                         <motion.div
                             variants={containerVariants}
                             initial="hidden"
@@ -314,7 +325,9 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
                             <motion.div variants={itemVariants} className="flex items-center gap-3">
                                 <span className="bg-surface-container-high text-on-surface text-sm font-bold px-3 py-1.5 rounded-xl shadow-sm border border-outline/10">二维码导入</span>
                                 <button
-                                    onClick={() => { setIsFabOpen(false); setIsScannerOpen(true); }}
+                                    onClick={() => {
+                                        setOnTheTop('scanner');
+                                    }}
                                     className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary-container text-on-secondary-container shadow-lg hover:brightness-110 transition-all"
                                 >
                                     <QrCodeScannerIcon className="w-6 h-6" />
@@ -325,7 +338,9 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
                             <motion.div variants={itemVariants} className="flex items-center gap-3">
                                 <span className="bg-surface-container-high text-on-surface text-sm font-bold px-3 py-1.5 rounded-xl shadow-sm border border-outline/10">手动输入</span>
                                 <button
-                                    onClick={() => { setIsFabOpen(false); setIsAddModalOpen(true); }}
+                                    onClick={() => {
+                                        setOnTheTop('addModal');
+                                    }}
                                     className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary-container text-on-secondary-container shadow-lg hover:brightness-110 transition-all"
                                 >
                                     <KeyboardIcon className="w-6 h-6" />
@@ -337,11 +352,17 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
 
                 {/* Main FAB */}
                 <motion.button
-                    onClick={() => setIsFabOpen(!isFabOpen)}
-                    className={`pointer-events-auto group flex h-[3.5rem] w-[3.5rem] items-center justify-center rounded-2xl shadow-lg shadow-primary/30 hover:shadow-xl z-30 ${isFabOpen ? 'bg-red-500 text-white shadow-red-500/30' : 'bg-primary text-on-primary'}`}
+                    onClick={() => {
+                        if (onTheTop === 'fab') {
+                            setOnTheTop('none');
+                        } else {
+                            setOnTheTop('fab');
+                        }
+                    }}
+                    className={`pointer-events-auto group flex h-[3.5rem] w-[3.5rem] items-center justify-center rounded-2xl shadow-lg shadow-primary/30 hover:shadow-xl z-30 ${onTheTop === 'fab' ? 'bg-red-500 text-white shadow-red-500/30' : 'bg-primary text-on-primary'}`}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    animate={{ rotate: isFabOpen ? 135 : 0 }}
+                    animate={{ rotate: onTheTop === 'fab' ? 135 : 0 }}
                     transition={{ type: "spring", stiffness: 260, damping: 20 }}
                 >
                     <AddIcon className="w-8 h-8" />
@@ -351,53 +372,66 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
             {/* Modals & Sheets */}
 
             {/* Action Sheet for Options */}
-            {selectedToken && (
-                <ActionSheet
-                    token={selectedToken}
-                    onClose={() => setSelectedToken(null)}
-                    onExport={() => {
-                        setExportData(selectedToken);
-                        setSelectedToken(null);
-                    }}
-                    onDelete={() => {
-                        setTokenToDelete(selectedToken);
-                        setSelectedToken(null);
-                    }}
-                />
-            )}
+            <AnimatePresence>
+                {onTheTop === 'actionSheet' && selectedToken && (
+                    <ActionSheet
+                        key="action-sheet"
+                        token={selectedToken}
+                        onClose={() => setOnTheTop('none')}
+                        onExport={() => {
+                            setExportData(selectedToken);
+                            setOnTheTop('export');
+                        }}
+                        onDelete={() => {
+                            setTokenToDelete(selectedToken);
+                            setOnTheTop('deleteConfirm');
+                        }}
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Delete Confirmation Modal */}
-            {tokenToDelete && (
-                <DeleteConfirmModal
-                    token={tokenToDelete}
-                    onConfirm={confirmDelete}
-                    onCancel={() => setTokenToDelete(null)}
-                />
-            )}
+            <AnimatePresence>
+                {onTheTop === 'deleteConfirm' && tokenToDelete && (
+                    <DeleteConfirmModal
+                        key="delete-confirm"
+                        token={tokenToDelete}
+                        onConfirm={confirmDelete}
+                        onCancel={() => setOnTheTop('none')}
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Scanner */}
             <AnimatePresence>
-                {isScannerOpen && (
-                    <ScannerModal onScan={handleScanSuccess} onClose={() => setIsScannerOpen(false)} />
+                {onTheTop === 'scanner' && (
+                    <ScannerModal key="scanner" onScan={handleScanSuccess} onClose={() => setOnTheTop('none')} />
                 )}
             </AnimatePresence>
 
             {/* Export QR */}
             <AnimatePresence>
-                {exportData && (
-                    <ExportModal data={exportData} onClose={() => setExportData(null)} />
+                {onTheTop === 'export' && exportData && (
+                    <ExportModal key="export" data={exportData} onClose={() => setOnTheTop('none')} />
                 )}
             </AnimatePresence>
 
             {/* Add Token Modal (Manual) */}
             <AnimatePresence>
-                {isAddModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                {onTheTop === 'addModal' && (
+                    <div key="add-modal" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                            onClick={() => setOnTheTop('none')}
+                        />
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            className="bg-surface-container w-full max-w-sm rounded-[2rem] p-6 shadow-xl border border-outline/10"
+                            className="relative bg-surface-container w-full max-w-sm rounded-[2rem] p-6 shadow-xl border border-outline/10 z-10"
                         >
                             <h3 className="text-xl font-bold text-on-surface mb-1">添加令牌</h3>
                             <p className="text-sm text-on-surface-variant mb-6">手动输入密钥详情</p>
@@ -440,7 +474,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, isScannerOpen, s
 
                             <div className="flex items-center justify-end gap-2 mt-8">
                                 <button
-                                    onClick={() => { setIsAddModalOpen(false); resetForm(); }}
+                                    onClick={() => { setOnTheTop('none'); resetForm(); }}
                                     className="px-4 py-2 text-primary font-bold text-sm hover:bg-primary/10 rounded-full transition-colors"
                                 >
                                     取消

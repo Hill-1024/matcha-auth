@@ -1,6 +1,6 @@
 {
   "name": "matcha-auth",
-  "version": "2.5.4",
+  "version": "2.5.5",
   "description": "A Material You styled 2FA Token Authenticator",
   "main": "index.html",
   "type": "module",

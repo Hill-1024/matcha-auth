@@ -1,3 +1,5 @@
+export type PopupType = 'none' | 'scanner' | 'export' | 'actionSheet' | 'deleteConfirm' | 'addModal' | 'fab';
+
 export interface Token {
   id: string;
   issuer: string;

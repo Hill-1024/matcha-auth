@@ -4,7 +4,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { motion, AnimatePresence } from 'framer-motion';
 import TokenList from './pages/TokenList';
 import ThemeSettings from './pages/ThemeSettings';
-import { RGB, ThemeColors } from './types';
+import { RGB, ThemeColors, PopupType } from './types';
 import { rgbToHex, generateThemeFromSeed, generateThemeFromMonet, applyThemeToDom } from './services/themeService';
 import { getMonetColors, MonetPalette } from './services/monetService';
 
@@ -35,8 +35,8 @@ const App: React.FC = () => {
     return savedPalette ? JSON.parse(savedPalette) : null;
   });
 
-  // Lifted State for Scanner to handle Back Button
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  // Lifted State for Popups to handle Back Button
+  const [onTheTop, setOnTheTop] = useState<PopupType>('none');
 
   // Listener for System Dark Mode Changes
   useEffect(() => {
@@ -103,10 +103,6 @@ const App: React.FC = () => {
     if (theme) {
       applyThemeToDom(theme);
       // Set status bar color and style
-      // For dark theme, we want light text (Style.Dark)
-      // For light theme, we want dark text (Style.Light)
-      // Wait, Style.Dark usually means "Dark Content" (Dark Text) on iOS/Android
-      // Style.Light usually means "Light Content" (Light Text)
       const style = isDark ? Style.Dark : Style.Light;
 
       StatusBar.setBackgroundColor({ color: theme.background }).catch(() => {});
@@ -126,14 +122,14 @@ const App: React.FC = () => {
     const setupBackListener = async () => {
       // Register listener for the hardware back button
       backButtonListener = await CapacitorApp.addListener('backButton', () => {
-        if (isScannerOpen) {
-          // If scanner is open, close it first
-          setIsScannerOpen(false);
-        } else if (currentPage === 'settings') {
+        if (currentPage === 'settings') {
           // If in settings, go back to home
           setCurrentPage('home');
+        } else if (onTheTop !== 'none') {
+          // If a popup is open, close it
+          setOnTheTop('none');
         } else {
-          // If on home and no scanner, exit the app
+          // If on home and no popup, exit the app
           CapacitorApp.exitApp();
         }
       });
@@ -147,7 +143,7 @@ const App: React.FC = () => {
         backButtonListener.remove();
       }
     };
-  }, [currentPage, isScannerOpen]);
+  }, [currentPage, onTheTop]);
 
   return (
       <AnimatePresence mode="wait">
@@ -161,8 +157,8 @@ const App: React.FC = () => {
             >
               <TokenList
                   onSettingsClick={() => setCurrentPage('settings')}
-                  isScannerOpen={isScannerOpen}
-                  setIsScannerOpen={setIsScannerOpen}
+                  onTheTop={onTheTop}
+                  setOnTheTop={setOnTheTop}
               />
             </motion.div>
         )}
