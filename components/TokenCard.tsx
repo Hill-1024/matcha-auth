@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Icon } from '@iconify/react';
 import { Token } from '../types';
 import { KeyIcon, MoreVertIcon, ForumIcon, CodeIcon, CloudQueueIcon } from './Icons';
+import { getIconForIssuer } from '../services/iconService';
 
 interface TokenCardProps {
   token: Token;
   onCopy: (code: string) => void;
   onMoreClick: (token: Token) => void;
+  onUpdateToken: (id: string, updates: Partial<Token>) => void;
 }
 
-const TokenCard: React.FC<TokenCardProps> = ({ token, onCopy, onMoreClick }) => {
+const TokenCard: React.FC<TokenCardProps> = ({ token, onCopy, onMoreClick, onUpdateToken }) => {
   // Format code with space: "123456" -> "123 456"
   const formattedCode = token.code.match(/.{1,3}/g)?.join(' ') || token.code;
 
@@ -18,6 +21,19 @@ const TokenCard: React.FC<TokenCardProps> = ({ token, onCopy, onMoreClick }) => 
   const radius = 15.9155;
   const circumference = 100;
   const dashOffset = circumference - (token.remaining / token.period) * circumference;
+
+  useEffect(() => {
+    const checkIcon = async () => {
+      // Only check if icon is default 'key' or undefined, and we have an issuer
+      if ((!token.icon || token.icon === 'key') && token.issuer) {
+        const newIcon = await getIconForIssuer(token.issuer);
+        if (newIcon && newIcon !== token.icon) {
+          onUpdateToken(token.id, { icon: newIcon });
+        }
+      }
+    };
+    checkIcon();
+  }, [token.issuer, token.icon, token.id, onUpdateToken]);
 
   const renderIcon = (iconName?: string) => {
     const className = "text-primary w-7 h-7";
@@ -46,6 +62,8 @@ const TokenCard: React.FC<TokenCardProps> = ({ token, onCopy, onMoreClick }) => 
                       className="w-full h-full object-contain rounded-lg"
                       loading="lazy"
                   />
+              ) : token.icon?.includes(':') ? (
+                  <Icon icon={token.icon} className="text-primary w-7 h-7" />
               ) : (
                   renderIcon(token.icon)
               )}

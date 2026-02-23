@@ -25,6 +25,7 @@
     "@capacitor/camera": "^8.0.1",
     "@capacitor/core": "^8.1.0",
     "@capacitor/status-bar": "^8.0.1",
+    "@iconify/react": "^6.0.2",
     "android-dynamic-color": "github:Hill-1024/Monet-Color-For-Capacitor",
     "framer-motion": "^12.34.3",
     "jsqr": "^1.4.0",

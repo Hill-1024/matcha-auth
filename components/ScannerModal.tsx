@@ -190,7 +190,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ onScan, onClose }) => {
 
             {/* 2. Controls Layer (Top) */}
             <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 pt-12">
-                <h3 className="text-white/90 font-bold text-lg drop-shadow-md">扫描二维码</h3>
+                <h3 className="text-white/90 font-bold text-lg drop-shadow-md">扫描QR Code</h3>
                 <button
                     onClick={onClose}
                     className="p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full text-white transition-colors border border-white/10"
@@ -214,7 +214,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ onScan, onClose }) => {
                         animate={{ opacity: 1, y: 0 }}
                         className="text-white/80 text-sm font-medium px-6 py-2 bg-black/30 backdrop-blur-md rounded-full border border-white/5"
                     >
-                        对准二维码即可自动识别
+                        对准QR Code即可自动识别
                     </motion.p>
                 )}
 

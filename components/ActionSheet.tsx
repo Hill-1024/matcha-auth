@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Token } from '../types';
-import { QrCodeScannerIcon, KeyIcon, DeleteIcon } from './Icons';
+import {KeyIcon, DeleteIcon, ExportIcon} from './Icons';
 
 interface ActionSheetProps {
   token: Token;
@@ -56,11 +56,11 @@ const ActionSheet: React.FC<ActionSheetProps> = ({ token, onClose, onExport, onD
                 className="flex items-center gap-4 w-full p-4 rounded-xl bg-surface-container-high hover:bg-surface-variant transition-colors text-on-surface"
             >
               <div className="p-2 bg-background rounded-full">
-                <QrCodeScannerIcon className="w-5 h-5" />
+                <ExportIcon className="w-5 h-5" />
               </div>
               <div className="flex flex-col items-start">
-                <span className="font-semibold">导出二维码</span>
-                <span className="text-xs text-on-surface-variant">显示用于迁移的二维码</span>
+                <span className="font-semibold">导出令牌</span>
+                <span className="text-xs text-on-surface-variant">显示用于迁移的QR Code</span>
               </div>
             </motion.button>
 

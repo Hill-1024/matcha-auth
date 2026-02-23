@@ -14,13 +14,13 @@ interface ExportModalProps {
 const ExportModal: React.FC<ExportModalProps> = ({ data, onClose }) => {
     const [qrUrl, setQrUrl] = useState<string>('');
     const isBatch = Array.isArray(data);
-    const title = isBatch ? `批量导出 (${data.length}个)` : '导出令牌';
-    const secretText = isBatch ? '批量导出数据已包含在二维码中' : (data as Token).secret;
+    const title = isBatch ? `批量导出令牌 (${data.length}个)` : '导出令牌';
+    const secretText = isBatch ? '批量导出数据已包含在QR Code中' : (data as Token).secret;
 
     useEffect(() => {
         const generate = async () => {
             try {
-                let uri = '';
+                let uri: string;
                 if (isBatch) {
                     uri = generateMigrationUri(data as Token[]);
                 } else {
@@ -66,7 +66,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ data, onClose }) => {
                 </div>
 
                 <h3 className="text-xl font-bold text-on-surface mb-1">{title}</h3>
-                <p className="text-sm text-on-surface-variant mb-6 text-center">使用其他设备扫描此二维码以导入</p>
+                <p className="text-sm text-on-surface-variant mb-6 text-center">使用其他设备扫描QR Code以导入</p>
 
                 <div className="bg-white p-4 rounded-3xl shadow-sm mb-6">
                     {qrUrl ? (
