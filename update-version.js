@@ -123,6 +123,19 @@ function updateAndroidVersion() {
           modified = true;
       }
 
+      // Inject signingConfig into release buildType if not already present
+      const releaseRegex = /(release\s*\{\s*(?:[^{}]*|\{[^{}]*\})*\})/;
+      const releaseMatch = gradleContent.match(releaseRegex);
+      if (releaseMatch && !releaseMatch[0].includes('signingConfig')) {
+          const updatedRelease = releaseMatch[0].replace(
+              /proguardFiles\s+getDefaultProguardFile\('proguard-android\.txt'\),\s*'proguard-rules\.pro'/,
+              "proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'\n            signingConfig signingConfigs.debug"
+          );
+          gradleContent = gradleContent.replace(releaseRegex, updatedRelease);
+          console.log('✅ Injected debug signingConfig into release buildType.');
+          modified = true;
+      }
+
       if (modified) {
           fs.writeFileSync(GRADLE_PATH, gradleContent, 'utf8');
           console.log('🚀 Android build.gradle updated successfully.');
