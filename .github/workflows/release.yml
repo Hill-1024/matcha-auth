@@ -1,0 +1,53 @@
+name: Release Build and Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Build
+        run: npm run build
+
+      - name: Package Web Assets
+        run: |
+          cd dist
+          zip -r ../matcha-auth-web.zip .
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: matcha-auth-web.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ### Matcha Auth Release
+            
+            This release contains the fully self-contained, offline-first web build of Matcha Auth.
+            
+            #### Key Features & Updates in this build:
+            - **100% Offline-First**: Removed online CDN dependencies (`cdn.tailwindcss.com`, `fonts.googleapis.com`, `esm.sh` importmap) to guarantee instant loading without network access.
+            - **Local Styles & Fonts**: Configured local Tailwind CSS compilation and packaged the `Manrope` font files natively.
+            - **Optimized Services**: Removed Node.js Buffer polyfills for clean, robust browser compilation.

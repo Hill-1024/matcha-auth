@@ -1,6 +1,23 @@
 import protobuf from 'protobufjs';
-import { Buffer } from 'buffer';
 import { Token } from '../types';
+
+function decodeBase64(base64: string): Uint8Array {
+    const binaryString = atob(base64);
+    const buffer = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+        buffer[i] = binaryString.charCodeAt(i);
+    }
+    return buffer;
+}
+
+function encodeBase64(buffer: Uint8Array): string {
+    let binaryString = '';
+    for (let i = 0; i < buffer.length; i++) {
+        binaryString += String.fromCharCode(buffer[i]);
+    }
+    return btoa(binaryString);
+}
+
 
 const RFC4648 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
@@ -104,7 +121,7 @@ export function parseMigrationUri(uri: string): Token[] {
         throw new Error('No data parameter');
     }
 
-    const buffer = Buffer.from(decodeURIComponent(data), 'base64');
+    const buffer = decodeBase64(decodeURIComponent(data));
     const message = MigrationPayload.decode(buffer) as any;
 
     const tokens: Token[] = [];
@@ -167,7 +184,7 @@ export function generateMigrationUri(tokens: Token[]): string {
 
     const message = MigrationPayload.create(payload);
     const buffer = MigrationPayload.encode(message).finish();
-    const base64Data = Buffer.from(buffer).toString('base64');
+    const base64Data = encodeBase64(buffer);
 
     return `otpauth-migration://offline?data=${encodeURIComponent(base64Data)}`;
 }

@@ -1,6 +1,6 @@
 {
   "name": "matcha-auth",
-  "version": "2.5.5",
+  "version": "2.5.6",
   "description": "A Material You styled 2FA Token Authenticator",
   "main": "index.html",
   "type": "module",
@@ -25,6 +25,7 @@
     "@capacitor/camera": "^8.0.1",
     "@capacitor/core": "^8.1.0",
     "@capacitor/status-bar": "^8.0.1",
+    "@fontsource/manrope": "^5.2.8",
     "@iconify/react": "^6.0.2",
     "android-dynamic-color": "github:Hill-1024/Monet-Color-For-Capacitor",
     "framer-motion": "^12.34.3",
@@ -44,6 +45,7 @@
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.1.0",
+    "@tailwindcss/forms": "^0.5.11",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
