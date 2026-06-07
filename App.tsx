@@ -4,12 +4,14 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { motion, AnimatePresence } from 'framer-motion';
 import TokenList from './pages/TokenList';
 import ThemeSettings from './pages/ThemeSettings';
+import WebDavSettings from './pages/WebDavSettings';
 import { RGB, ThemeColors, PopupType } from './types';
 import { rgbToHex, generateThemeFromSeed, generateThemeFromMonet, applyThemeToDom } from './services/themeService';
 import { getMonetColors, MonetPalette } from './services/monetService';
+import { startWebDavSyncScheduler } from './services/webDavSyncService';
 
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<'home' | 'settings'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'settings' | 'webdavSettings'>('home');
 
   // Theme Mode State: 'light' | 'dark' | 'system'
   const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>(() => {
@@ -37,6 +39,10 @@ const App: React.FC = () => {
 
   // Lifted State for Popups to handle Back Button
   const [onTheTop, setOnTheTop] = useState<PopupType>('none');
+
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentPage]);
 
   // Listener for System Dark Mode Changes
   useEffect(() => {
@@ -72,6 +78,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('matcha_theme_mode', themeMode);
   }, [themeMode]);
+
+  useEffect(() => {
+    return startWebDavSyncScheduler();
+  }, []);
 
 
   // Calculate Effective Dark Mode immediately
@@ -122,7 +132,9 @@ const App: React.FC = () => {
     const setupBackListener = async () => {
       // Register listener for the hardware back button
       backButtonListener = await CapacitorApp.addListener('backButton', () => {
-        if (currentPage === 'settings') {
+        if (currentPage === 'webdavSettings') {
+          setCurrentPage('settings');
+        } else if (currentPage === 'settings') {
           // If in settings, go back to home
           setCurrentPage('home');
         } else if (onTheTop !== 'none') {
@@ -173,6 +185,7 @@ const App: React.FC = () => {
             >
               <ThemeSettings
                   onBack={() => setCurrentPage('home')}
+                  onWebDavClick={() => setCurrentPage('webdavSettings')}
                   themeMode={themeMode}
                   setThemeMode={setThemeMode}
                   selectedPreset={selectedPreset}
@@ -180,6 +193,20 @@ const App: React.FC = () => {
                   customRgb={customRgb}
                   setCustomRgb={setCustomRgb}
                   isMonetAvailable={!!monetPalette}
+              />
+            </motion.div>
+        )}
+
+        {currentPage === 'webdavSettings' && (
+            <motion.div
+                key="webdavSettings"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+            >
+              <WebDavSettings
+                  onBack={() => setCurrentPage('settings')}
               />
             </motion.div>
         )}

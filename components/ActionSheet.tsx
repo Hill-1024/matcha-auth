@@ -1,17 +1,18 @@
 import React from 'react';
 import {motion} from 'framer-motion';
 import {Token} from '../types';
-import {KeyIcon, DeleteIcon, ExportIcon} from './Icons';
+import {KeyIcon, DeleteIcon, EditIcon, ExportIcon} from './Icons';
 import {Icon} from "@iconify/react";
 
 interface ActionSheetProps {
     token: Token;
     onClose: () => void;
+    onEdit: () => void;
     onExport: () => void;
     onDelete: () => void;
 }
 
-const ActionSheet: React.FC<ActionSheetProps> = ({token, onClose, onExport, onDelete}) => {
+const ActionSheet: React.FC<ActionSheetProps> = ({token, onClose, onEdit, onExport, onDelete}) => {
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
             {/* Backdrop */}
@@ -54,6 +55,20 @@ const ActionSheet: React.FC<ActionSheetProps> = ({token, onClose, onExport, onDe
 
                 {/* Actions */}
                 <div className="flex flex-col gap-2">
+                    <motion.button
+                        whileTap={{scale: 0.96}}
+                        onClick={onEdit}
+                        className="flex items-center gap-4 w-full p-4 rounded-xl bg-surface-container-high hover:bg-surface-variant transition-colors text-on-surface"
+                    >
+                        <div className="p-2 bg-background rounded-full">
+                            <EditIcon className="w-5 h-5"/>
+                        </div>
+                        <div className="flex flex-col items-start">
+                            <span className="font-semibold">编辑令牌</span>
+                            <span className="text-xs text-on-surface-variant">修改提供商和帐号名</span>
+                        </div>
+                    </motion.button>
+
                     <motion.button
                         whileTap={{scale: 0.96}}
                         onClick={onExport}

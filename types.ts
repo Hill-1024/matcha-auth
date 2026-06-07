@@ -1,4 +1,9 @@
-export type PopupType = 'none' | 'scanner' | 'export' | 'actionSheet' | 'deleteConfirm' | 'addModal' | 'fab';
+export type PopupType = 'none' | 'scanner' | 'export' | 'actionSheet' | 'deleteConfirm' | 'addModal' | 'editModal' | 'fab';
+
+export type WebDavLaunchSyncDelay = 'never' | '1s' | '10s';
+export type WebDavPeriodicSyncInterval = 'off' | 30 | 60;
+export type WebDavChangeUploadMode = 'off' | 'full' | 'incremental';
+export type WebDavSyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
 export interface Token {
   id: string;
@@ -16,6 +21,24 @@ export interface RGB {
   r: number;
   g: number;
   b: number;
+}
+
+export interface WebDavSettings {
+  enabled: boolean;
+  serverUrl: string;
+  username: string;
+  password: string;
+  remotePath: string;
+  launchSyncDelay: WebDavLaunchSyncDelay;
+  periodicSyncInterval: WebDavPeriodicSyncInterval;
+  changeUploadMode: WebDavChangeUploadMode;
+}
+
+export interface WebDavRuntimeState {
+  status: WebDavSyncStatus;
+  lastSyncAt?: string;
+  lastError?: string;
+  lastReason?: string;
 }
 
 export interface ThemeColors {

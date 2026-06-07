@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { RGB } from '../types';
 import { hexToRgb, rgbToHex } from '../services/themeService';
+import { loadWebDavSettings, subscribeWebDavSettings } from '../services/webDavSyncService';
 import { BUILD_INFO } from '@/buildInfo';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -13,11 +14,13 @@ import {
     CheckIcon,
     TuneIcon,
     PaletteIcon,
-    InfoIcon
+    InfoIcon,
+    CloudQueueIcon
 } from '../components/Icons';
 
 interface ThemeSettingsProps {
     onBack: () => void;
+    onWebDavClick: () => void;
     themeMode: 'light' | 'dark' | 'system';
     setThemeMode: (mode: 'light' | 'dark' | 'system') => void;
     selectedPreset: string;
@@ -38,6 +41,7 @@ const PRESETS = [
 
 const ThemeSettings: React.FC<ThemeSettingsProps> = ({
                                                          onBack,
+                                                         onWebDavClick,
                                                          themeMode,
                                                          setThemeMode,
                                                          selectedPreset,
@@ -46,6 +50,7 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({
                                                          setCustomRgb,
                                                          isMonetAvailable
                                                      }) => {
+    const [isWebDavEnabled, setIsWebDavEnabled] = useState(() => loadWebDavSettings().enabled);
 
     const handlePresetSelect = (name: string, hex: string) => {
         setSelectedPreset(name);
@@ -58,6 +63,12 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({
         setCustomRgb({ ...customRgb, [channel]: value });
         setSelectedPreset('Custom');
     };
+
+    useEffect(() => {
+        return subscribeWebDavSettings((settings) => {
+            setIsWebDavEnabled(settings.enabled);
+        });
+    }, []);
 
     return (
         <motion.div
@@ -73,7 +84,7 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({
                     className="text-on-surface flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-on-surface/10 transition-colors mr-2">
                     <ArrowBackIcon className="w-6 h-6" />
                 </button>
-                <h1 className="text-2xl font-semibold tracking-tight text-on-surface flex-1">主题与风格</h1>
+                <h1 className="text-2xl font-semibold tracking-tight text-on-surface flex-1">设置</h1>
             </div>
 
             <div className="flex flex-col px-4 gap-6 mt-2 overflow-y-auto no-scrollbar pb-20">
@@ -296,6 +307,27 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({
                         </motion.div>
                     )}
                 </AnimatePresence>
+
+                {/* Sync Section */}
+                <div className="flex flex-col gap-4 mt-6">
+                    <h3 className="text-lg font-bold text-on-surface px-2">同步</h3>
+                    <button
+                        type="button"
+                        onClick={onWebDavClick}
+                        className="bg-surface-container rounded-3xl p-5 shadow-sm border border-outline/10 dark:border-white/5 flex items-center justify-between gap-4 text-left hover:bg-surface-container-high transition-colors"
+                    >
+                        <div className="flex items-center gap-4 min-w-0">
+                            <div className="p-3 bg-primary/10 rounded-full text-primary shrink-0">
+                                <CloudQueueIcon className="w-6 h-6" />
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                                <span className="font-bold text-on-surface text-base">WebDAV 同步</span>
+                                <span className="text-xs text-on-surface-variant">{isWebDavEnabled ? '已开启' : '未开启'}</span>
+                            </div>
+                        </div>
+                        <ArrowBackIcon className="w-5 h-5 rotate-180 text-on-surface-variant shrink-0" />
+                    </button>
+                </div>
 
                 {/* About App Section */}
                 <div className="flex flex-col gap-4 mt-6">

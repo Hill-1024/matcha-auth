@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, Variants, LayoutGroup } from 'framer-motion';
 import { Token, PopupType } from '../types';
 import TokenCard from '../components/TokenCard';
@@ -10,6 +10,14 @@ import Toast from '../components/Toast';
 import { generateTotpValues, parseOtpauthUri } from '../services/totpService';
 import { parseMigrationUri } from '../services/migrationService';
 import { initIconService } from '../services/iconService';
+import {
+    createTokenSnapshot,
+    notifyLocalTokensChanged,
+    readTokensFromStorage,
+    rememberTokenSnapshot,
+    subscribeTokenRemoteUpdates,
+    writeTokensToStorage
+} from '../services/webDavSyncService';
 import {
     SettingsIcon,
     SearchIcon,
@@ -29,10 +37,10 @@ interface TokenListProps {
 
 const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnTheTop }) => {
     // Load initial state from local storage or empty array
-    const [tokens, setTokens] = useState<Token[]>(() => {
-        const saved = localStorage.getItem('matcha_tokens');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [tokens, setTokens] = useState<Token[]>(() => readTokensFromStorage());
+    const persistentTokenSnapshot = useMemo(() => createTokenSnapshot(tokens), [tokens]);
+    const hasPersistedInitialTokens = useRef(false);
+    const isApplyingRemoteTokens = useRef(false);
 
     // Init Icon Service
     useEffect(() => {
@@ -43,6 +51,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
     const [exportData, setExportData] = useState<Token | Token[] | null>(null);
     const [selectedToken, setSelectedToken] = useState<Token | null>(null); // For ActionSheet
     const [tokenToDelete, setTokenToDelete] = useState<Token | null>(null); // For DeleteConfirmModal
+    const [tokenToEdit, setTokenToEdit] = useState<Token | null>(null);
 
     // Toast State
     const [toastMessage, setToastMessage] = useState('');
@@ -53,10 +62,35 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
     const [newAccount, setNewAccount] = useState('');
     const [newSecret, setNewSecret] = useState('');
 
-    // Save to local storage whenever tokens change
+    // Edit Modal State
+    const [editIssuer, setEditIssuer] = useState('');
+    const [editAccount, setEditAccount] = useState('');
+
+    // Save durable token fields only when user-facing token data changes.
     useEffect(() => {
-        localStorage.setItem('matcha_tokens', JSON.stringify(tokens));
-    }, [tokens]);
+        writeTokensToStorage(tokens);
+
+        if (isApplyingRemoteTokens.current) {
+            rememberTokenSnapshot(tokens);
+            isApplyingRemoteTokens.current = false;
+            return;
+        }
+
+        if (!hasPersistedInitialTokens.current) {
+            rememberTokenSnapshot(tokens);
+            hasPersistedInitialTokens.current = true;
+            return;
+        }
+
+        notifyLocalTokensChanged(tokens);
+    }, [persistentTokenSnapshot]);
+
+    useEffect(() => {
+        return subscribeTokenRemoteUpdates((remoteTokens) => {
+            isApplyingRemoteTokens.current = true;
+            setTokens(remoteTokens);
+        });
+    }, []);
 
     const handleUpdateToken = useCallback((id: string, updates: Partial<Token>) => {
         setTokens(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
@@ -169,10 +203,50 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
         }
     };
 
+    const openEditModal = (token: Token) => {
+        setTokenToEdit(token);
+        setEditIssuer(token.issuer);
+        setEditAccount(token.account);
+        setOnTheTop('editModal');
+    };
+
+    const handleSaveEditToken = () => {
+        if (!tokenToEdit) return;
+
+        const issuer = editIssuer.trim();
+        const account = editAccount.trim();
+        if (!issuer || !account) return;
+
+        setTokens(prev => prev.map(t => {
+            if (t.id !== tokenToEdit.id) return t;
+
+            const issuerChanged = t.issuer !== issuer;
+            return {
+                ...t,
+                issuer,
+                account,
+                icon: issuerChanged ? 'key' : t.icon,
+                color: issuerChanged ? undefined : t.color
+            };
+        }));
+
+        setOnTheTop('none');
+        resetEditForm();
+        setToastMessage('已更新令牌');
+        setIsToastVisible(true);
+        setTimeout(() => setIsToastVisible(false), 2000);
+    };
+
     const resetForm = () => {
         setNewIssuer('');
         setNewAccount('');
         setNewSecret('');
+    };
+
+    const resetEditForm = () => {
+        setTokenToEdit(null);
+        setEditIssuer('');
+        setEditAccount('');
     };
 
     const filteredTokens = tokens.filter(t =>
@@ -389,6 +463,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                         key="action-sheet"
                         token={selectedToken}
                         onClose={() => setOnTheTop('none')}
+                        onEdit={() => openEditModal(selectedToken)}
                         onExport={() => {
                             setExportData(selectedToken);
                             setOnTheTop('export');
@@ -398,6 +473,71 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                             setOnTheTop('deleteConfirm');
                         }}
                     />
+                )}
+            </AnimatePresence>
+
+            {/* Edit Token Modal */}
+            <AnimatePresence>
+                {onTheTop === 'editModal' && tokenToEdit && (
+                    <div key="edit-modal" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                            onClick={() => { setOnTheTop('none'); resetEditForm(); }}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="relative bg-surface-container w-full max-w-sm rounded-[2rem] p-6 shadow-xl border border-outline/10 dark:border-white/5 z-10"
+                        >
+                            <h3 className="text-xl font-bold text-on-surface mb-1">编辑令牌</h3>
+                            <p className="text-sm text-on-surface-variant mb-6">修改提供商和帐号名</p>
+
+                            <div className="flex flex-col gap-4">
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-bold text-primary ml-1">提供商</label>
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        className="w-full bg-surface-container-high rounded-xl border-none p-3 text-on-surface focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-on-surface-variant/50"
+                                        placeholder="例如: Google"
+                                        value={editIssuer}
+                                        onChange={(e) => setEditIssuer(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-bold text-primary ml-1">帐号名</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-surface-container-high rounded-xl border-none p-3 text-on-surface focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-on-surface-variant/50"
+                                        placeholder="例如: user@email.com"
+                                        value={editAccount}
+                                        onChange={(e) => setEditAccount(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2 mt-8">
+                                <button
+                                    onClick={() => { setOnTheTop('none'); resetEditForm(); }}
+                                    className="px-4 py-2 text-primary font-bold text-sm hover:bg-primary/10 rounded-full transition-colors"
+                                >
+                                    取消
+                                </button>
+                                <button
+                                    onClick={handleSaveEditToken}
+                                    disabled={!editIssuer.trim() || !editAccount.trim()}
+                                    className="px-6 py-2 bg-primary text-on-primary font-bold text-sm rounded-full shadow-sm hover:shadow-md disabled:opacity-50 disabled:shadow-none transition-all"
+                                >
+                                    保存
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
 
