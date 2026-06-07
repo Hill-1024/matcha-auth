@@ -1,3 +1,4 @@
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import {
   Token,
   WebDavChangeUploadMode,
@@ -51,6 +52,12 @@ interface WebDavLocalState {
 interface WebDavSyncResult {
   changed: boolean;
   message: string;
+}
+
+interface WebDavHttpResponse {
+  status: number;
+  ok: boolean;
+  json: () => Promise<unknown>;
 }
 
 const DEFAULT_SETTINGS: WebDavSettings = {
@@ -438,16 +445,84 @@ const ensureParentCollections = async (settings: WebDavSettings, remotePath: str
   }
 };
 
-const fetchWebDav = (settings: WebDavSettings, url: string, init: RequestInit) => {
+const fetchWebDav = async (
+  settings: WebDavSettings,
+  url: string,
+  init: RequestInit,
+): Promise<WebDavHttpResponse> => {
   const headers = new Headers(init.headers);
   if (settings.username || settings.password) {
     headers.set('Authorization', `Basic ${toBase64(`${settings.username}:${settings.password}`)}`);
   }
 
-  return fetch(url, {
-    ...init,
-    headers,
+  if (shouldUseNativeHttp()) {
+    return fetchWebDavNative(url, init, headers);
+  }
+
+  try {
+    const response = await fetch(url, {
+      ...init,
+      headers,
+    });
+
+    return {
+      status: response.status,
+      ok: response.ok,
+      json: () => response.json(),
+    };
+  } catch (error) {
+    throw new Error(getWebDavNetworkErrorMessage(error));
+  }
+};
+
+const fetchWebDavNative = async (
+  url: string,
+  init: RequestInit,
+  headers: Headers,
+): Promise<WebDavHttpResponse> => {
+  try {
+    const response = await CapacitorHttp.request({
+      url,
+      method: init.method || 'GET',
+      headers: headersToRecord(headers),
+      data: typeof init.body === 'string' ? init.body : undefined,
+      responseType: 'text',
+      connectTimeout: 15000,
+      readTimeout: 30000,
+    });
+
+    return {
+      status: response.status,
+      ok: response.status >= 200 && response.status < 300,
+      json: async () => parseResponseData(response.data),
+    };
+  } catch (error) {
+    throw new Error(getWebDavNetworkErrorMessage(error));
+  }
+};
+
+const shouldUseNativeHttp = () => {
+  return Capacitor.getPlatform() !== 'web' && Capacitor.isPluginAvailable('CapacitorHttp');
+};
+
+const headersToRecord = (headers: Headers): Record<string, string> => {
+  const record: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    record[key] = value;
   });
+  return record;
+};
+
+const parseResponseData = (data: unknown) => {
+  if (typeof data !== 'string') {
+    return data;
+  }
+
+  if (!data.trim()) {
+    return null;
+  }
+
+  return JSON.parse(data);
 };
 
 const buildBackupFromLocal = (tokens: Token[]): SyncBackupDocument => {
@@ -871,4 +946,19 @@ const toBase64 = (value: string) => {
 
 const getErrorMessage = (error: unknown) => {
   return error instanceof Error ? error.message : String(error);
+};
+
+const getWebDavNetworkErrorMessage = (error: unknown) => {
+  const message = getErrorMessage(error);
+  const platform = Capacitor.getPlatform();
+
+  if (message.includes('Failed to fetch') || message.includes('Network request failed')) {
+    if (platform === 'web') {
+      return '网络请求失败：浏览器环境可能被 WebDAV 服务的 CORS 策略拦截。请在 Android/iOS 应用中使用，或为 WebDAV 服务开启 CORS。';
+    }
+
+    return '网络请求失败：请检查 WebDAV 地址、证书是否可信、网络是否可达，以及服务器是否允许当前请求方法。';
+  }
+
+  return message;
 };
