@@ -1,4 +1,4 @@
-import { Capacitor, CapacitorHttp } from '@capacitor/core';
+import { Capacitor, CapacitorHttp, registerPlugin } from '@capacitor/core';
 import {
   Token,
   WebDavChangeUploadMode,
@@ -59,6 +59,27 @@ interface WebDavHttpResponse {
   ok: boolean;
   json: () => Promise<unknown>;
 }
+
+interface MatchaWebDavHttpOptions {
+  url: string;
+  method: string;
+  headers?: Record<string, string>;
+  data?: string;
+  responseType?: 'text';
+  connectTimeout?: number;
+  readTimeout?: number;
+}
+
+interface MatchaWebDavHttpResponse {
+  status: number;
+  data: unknown;
+}
+
+interface MatchaWebDavHttpPlugin {
+  request: (options: MatchaWebDavHttpOptions) => Promise<MatchaWebDavHttpResponse>;
+}
+
+const MatchaWebDavHttp = registerPlugin<MatchaWebDavHttpPlugin>('MatchaWebDavHttp');
 
 const DEFAULT_SETTINGS: WebDavSettings = {
   enabled: false,
@@ -455,8 +476,16 @@ const fetchWebDav = async (
     headers.set('Authorization', `Basic ${toBase64(`${settings.username}:${settings.password}`)}`);
   }
 
-  if (shouldUseNativeHttp()) {
-    return fetchWebDavNative(url, init, headers);
+  if (shouldUseMatchaWebDavHttp()) {
+    return fetchWebDavWithMatchaNative(url, init, headers);
+  }
+
+  if (shouldUseCapacitorHttp()) {
+    if (isWebDavCollectionMethod(init.method)) {
+      throw new Error('当前版本的原生 HTTP 层不支持 WebDAV 目录创建，请更新应用后重试。');
+    }
+
+    return fetchWebDavWithCapacitorHttp(url, init, headers);
   }
 
   try {
@@ -475,7 +504,33 @@ const fetchWebDav = async (
   }
 };
 
-const fetchWebDavNative = async (
+const fetchWebDavWithMatchaNative = async (
+  url: string,
+  init: RequestInit,
+  headers: Headers,
+): Promise<WebDavHttpResponse> => {
+  try {
+    const response = await MatchaWebDavHttp.request({
+      url,
+      method: init.method || 'GET',
+      headers: headersToRecord(headers),
+      data: typeof init.body === 'string' ? init.body : undefined,
+      responseType: 'text',
+      connectTimeout: 15000,
+      readTimeout: 30000,
+    });
+
+    return {
+      status: response.status,
+      ok: response.status >= 200 && response.status < 300,
+      json: async () => parseResponseData(response.data),
+    };
+  } catch (error) {
+    throw new Error(getWebDavNetworkErrorMessage(error));
+  }
+};
+
+const fetchWebDavWithCapacitorHttp = async (
   url: string,
   init: RequestInit,
   headers: Headers,
@@ -501,8 +556,16 @@ const fetchWebDavNative = async (
   }
 };
 
-const shouldUseNativeHttp = () => {
+const shouldUseMatchaWebDavHttp = () => {
+  return Capacitor.getPlatform() === 'android' && Capacitor.isPluginAvailable('MatchaWebDavHttp');
+};
+
+const shouldUseCapacitorHttp = () => {
   return Capacitor.getPlatform() !== 'web' && Capacitor.isPluginAvailable('CapacitorHttp');
+};
+
+const isWebDavCollectionMethod = (method?: string) => {
+  return (method || 'GET').toUpperCase() === 'MKCOL';
 };
 
 const headersToRecord = (headers: Headers): Record<string, string> => {
@@ -958,6 +1021,10 @@ const getWebDavNetworkErrorMessage = (error: unknown) => {
     }
 
     return '网络请求失败：请检查 WebDAV 地址、证书是否可信、网络是否可达，以及服务器是否允许当前请求方法。';
+  }
+
+  if (message.includes('Expected one of') && message.includes('MKCOL')) {
+    return 'WebDAV 目录创建失败：当前原生 HTTP 层不支持 MKCOL，请更新应用后重试。';
   }
 
   return message;

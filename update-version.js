@@ -8,6 +8,28 @@ const __dirname = path.dirname(__filename);
 const MANIFEST_PATH = path.resolve(__dirname, './android/app/src/main/AndroidManifest.xml');
 const GRADLE_PATH = path.resolve(__dirname, './android/app/build.gradle');
 const PACKAGE_JSON_PATH = path.resolve(__dirname, './package.json');
+const ANDROID_NATIVE_SOURCE_PATH = path.resolve(__dirname, './native/capacitor/java');
+const ANDROID_APP_JAVA_PATH = path.resolve(__dirname, './android/app/src/main/java');
+
+const RELEASE_SIGNING_ENV = `def releaseKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+def releaseKeystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+def releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+def hasReleaseKeystore = releaseKeystorePath && releaseKeystorePassword && releaseKeyAlias && releaseKeyPassword`;
+
+const RELEASE_SIGNING_CONFIG = `    signingConfigs {
+        release {
+            if (hasReleaseKeystore) {
+                storeFile file(releaseKeystorePath)
+                storePassword releaseKeystorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }`;
+
+const RELEASE_SIGNING_LINE = 'signingConfig = hasReleaseKeystore ? signingConfigs.release : signingConfigs.debug';
+const OKHTTP_DEPENDENCY = '    implementation "com.squareup.okhttp3:okhttp:4.12.0"';
 
 function injectPermissions() {
   console.log('🛡️ Checking Android Manifest for Camera Permissions...');
@@ -123,16 +145,48 @@ function updateAndroidVersion() {
           modified = true;
       }
 
-      // Inject signingConfig into release buildType if not already present
-      const releaseRegex = /(release\s*\{\s*(?:[^{}]*|\{[^{}]*\})*\})/;
+      if (!gradleContent.includes('ANDROID_KEYSTORE_PATH')) {
+          gradleContent = gradleContent.replace(
+              /apply plugin: 'com\.android\.application'\s*/,
+              (match) => `${match}\n${RELEASE_SIGNING_ENV}\n`
+          );
+          console.log('✅ Added release signing environment configuration.');
+          modified = true;
+      }
+
+      if (!/signingConfigs\s*\{/.test(gradleContent)) {
+          gradleContent = gradleContent.replace(/\n\s*buildTypes\s*\{/, `\n${RELEASE_SIGNING_CONFIG}\n    buildTypes {`);
+          console.log('✅ Added release signingConfig.');
+          modified = true;
+      }
+
+      if (gradleContent.includes('signingConfig signingConfigs.debug')) {
+          gradleContent = gradleContent.replace(/signingConfig\s+signingConfigs\.debug/g, RELEASE_SIGNING_LINE);
+          console.log('✅ Replaced debug-only release signing.');
+          modified = true;
+      }
+
+      if (gradleContent.includes('signingConfig = signingConfigs.debug')) {
+          gradleContent = gradleContent.replace(/signingConfig\s*=\s*signingConfigs\.debug/g, RELEASE_SIGNING_LINE);
+          console.log('✅ Replaced debug-only release signing.');
+          modified = true;
+      }
+
+      const releaseRegex = /(buildTypes\s*\{\s*release\s*\{\s*(?:[^{}]*|\{[^{}]*\})*\})/;
       const releaseMatch = gradleContent.match(releaseRegex);
       if (releaseMatch && !releaseMatch[0].includes('signingConfig')) {
           const updatedRelease = releaseMatch[0].replace(
               /proguardFiles\s+getDefaultProguardFile\('proguard-android\.txt'\),\s*'proguard-rules\.pro'/,
-              "proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'\n            signingConfig signingConfigs.debug"
+              `proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'\n            ${RELEASE_SIGNING_LINE}`
           );
           gradleContent = gradleContent.replace(releaseRegex, updatedRelease);
-          console.log('✅ Injected debug signingConfig into release buildType.');
+          console.log('✅ Injected release signingConfig selector.');
+          modified = true;
+      }
+
+      if (!gradleContent.includes('com.squareup.okhttp3:okhttp')) {
+          gradleContent = gradleContent.replace(/dependencies\s*\{/, `dependencies {\n${OKHTTP_DEPENDENCY}`);
+          console.log('✅ Added OkHttp dependency for WebDAV methods.');
           modified = true;
       }
 
@@ -148,5 +202,23 @@ function updateAndroidVersion() {
   }
 }
 
+function syncAndroidNativeSources() {
+  console.log('🔌 Checking Android native WebDAV bridge...');
+
+  if (!fs.existsSync(ANDROID_NATIVE_SOURCE_PATH)) {
+    console.warn('⚠️ Native Android source templates not found. Skipping WebDAV bridge injection.');
+    return;
+  }
+
+  if (!fs.existsSync(ANDROID_APP_JAVA_PATH)) {
+    console.warn('⚠️ Android Java source directory not found. Skipping WebDAV bridge injection.');
+    return;
+  }
+
+  fs.cpSync(ANDROID_NATIVE_SOURCE_PATH, ANDROID_APP_JAVA_PATH, { recursive: true });
+  console.log('✅ Android native WebDAV bridge is in place.');
+}
+
 injectPermissions();
 updateAndroidVersion();
+syncAndroidNativeSources();
