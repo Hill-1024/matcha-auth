@@ -67,6 +67,11 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
 
         const handleScroll = () => {
             const currentY = window.scrollY;
+
+            if (currentY > 10 && document.activeElement?.id === 'token-search-input') {
+                document.activeElement.blur();
+            }
+
             // 引入迟滞 (Hysteresis) 避免临界点反复横跳
             if (!isCurrentlyScrolled && currentY > 40) {
                 isCurrentlyScrolled = true;
@@ -86,7 +91,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const shouldCollapseSearch = isScrolled && search.length === 0 && !isSearchFocused;
+    const shouldCollapseSearch = isScrolled;
 
     // Add Modal State
     const [newIssuer, setNewIssuer] = useState('');
@@ -319,7 +324,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col h-full min-h-screen bg-background pb-5"
+            className="flex flex-col h-full min-h-[calc(100vh+150px)] bg-background pb-5"
         >
             {/* Sticky Top Bar */}
             <div className="sticky top-0 z-40 flex flex-col bg-background/90 backdrop-blur-xl transition-colors shadow-sm">
@@ -335,7 +340,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                                     window.scrollTo({ top: 0, behavior: 'smooth' });
                                     setTimeout(() => document.getElementById('token-search-input')?.focus(), 300);
                                 }}
-                                className="flex shrink-0 items-center justify-center rounded-full h-10 w-10 bg-surface-container-high text-on-surface-variant hover:bg-surface-variant transition-colors cursor-pointer"
+                                className={`flex shrink-0 items-center justify-center rounded-full h-10 w-10 transition-colors cursor-pointer ${search ? 'bg-primary/10 text-primary hover:bg-primary/20' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-variant'}`}
                                 title="搜索"
                             >
                                 <motion.div layoutId="search-icon" transition={{ type: "spring", stiffness: 500, damping: 40 }}>
