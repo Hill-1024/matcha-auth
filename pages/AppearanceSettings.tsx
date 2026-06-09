@@ -78,8 +78,8 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
             <div className="flex flex-col px-4 gap-6 mt-2 overflow-y-auto no-scrollbar pb-20">
 
                 {/* Preview Card */}
-                <div className="flex flex-col gap-3">
-                    <div className="relative overflow-hidden rounded-[2rem] bg-primary-container p-6 shadow-sm group border border-transparent">
+                <div className="flex flex-col gap-2">
+                    <div className="relative overflow-hidden rounded-2xl bg-primary-container p-5 shadow-sm group border border-transparent">
                         {/* Abstract Blobs for visual flair */}
                         <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary/20 blur-3xl"></div>
                         <div className="absolute -left-12 -bottom-12 h-40 w-40 rounded-full bg-primary/10 blur-3xl"></div>
@@ -123,8 +123,8 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
                 </div>
 
                 {/* Theme Mode Selector (Segmented Control) */}
-                <div className="flex flex-col gap-3">
-                    <h3 className="text-lg font-bold text-on-surface px-2">外观模式</h3>
+                <div className="flex flex-col gap-2 mt-2">
+                    <h3 className="text-base font-bold text-on-surface px-2">外观模式</h3>
                     <div className="flex bg-surface-container-high p-1 rounded-full border border-outline/10 dark:border-white/5">
                         <button
                             onClick={() => setThemeMode('light')}
@@ -151,8 +151,8 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
                 </div>
 
                 {/* Card Display Mode Selector */}
-                <div className="flex flex-col gap-3 mt-2">
-                    <h3 className="text-lg font-bold text-on-surface px-2">卡片显示</h3>
+                <div className="flex flex-col gap-2 mt-4">
+                    <h3 className="text-base font-bold text-on-surface px-2">卡片显示</h3>
                     <div className="flex bg-surface-container-high p-1 rounded-full border border-outline/10 dark:border-white/5">
                         <button
                             onClick={() => setCardDisplay('loose')}
@@ -173,10 +173,10 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
 
                 {/* Dynamic Color Toggle */}
                 {isMonetAvailable && (
-                    <div className="flex flex-col gap-3 mt-2">
-                        <h3 className="text-lg font-bold text-on-surface px-2">动态取色 (Monet)</h3>
+                    <div className="flex flex-col gap-2 mt-4">
+                        <h3 className="text-base font-bold text-on-surface px-2">动态取色 (Monet)</h3>
                         <div
-                            className="flex items-center justify-between bg-surface-container-high p-4 rounded-[2rem] border border-outline/10 dark:border-white/5 cursor-pointer hover:bg-surface-variant/50 transition-colors"
+                            className="flex items-center justify-between bg-surface-container rounded-2xl p-4 shadow-sm border border-outline/10 dark:border-white/5 cursor-pointer hover:bg-surface-variant/50 transition-colors"
                             onClick={() => {
                                 if (selectedPreset === 'Dynamic') {
                                     setSelectedPreset('Matcha');
@@ -208,14 +208,14 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
 
                 {/* Static Colors */}
                 <motion.div
-                    className="flex flex-col gap-4 mt-2"
+                    className="flex flex-col gap-2 mt-4"
                     animate={{
                         opacity: selectedPreset === 'Dynamic' ? 0.5 : 1,
                         filter: selectedPreset === 'Dynamic' ? 'grayscale(100%)' : 'grayscale(0%)'
                     }}
                     transition={{ duration: 0.3 }}
                 >
-                    <h3 className="text-lg font-bold text-on-surface px-2">静态预设</h3>
+                    <h3 className="text-base font-bold text-on-surface px-2">静态预设</h3>
                     {/* Increased bottom padding to prevent label clipping and hid overflow-y */}
                     <div className={`flex items-center gap-3 overflow-x-auto pt-4 pb-10 px-4 scrollbar-hide overflow-y-hidden ${selectedPreset === 'Dynamic' ? 'pointer-events-none' : ''}`}>
 
@@ -251,7 +251,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
-                            className="rounded-3xl bg-surface p-5 shadow-sm border border-outline/10 dark:border-white/5 mt-2 overflow-hidden"
+                            className="rounded-2xl bg-surface p-4 shadow-sm border border-outline/10 dark:border-white/5 mt-2 overflow-hidden"
                         >
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-2">

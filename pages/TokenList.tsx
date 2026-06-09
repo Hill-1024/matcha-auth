@@ -58,6 +58,36 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
     const [toastMessage, setToastMessage] = useState('');
     const [isToastVisible, setIsToastVisible] = useState(false);
 
+    // Scroll & Search State
+    const [isScrolled, setIsScrolled] = useState(false);
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+    useEffect(() => {
+        let isCurrentlyScrolled = false;
+
+        const handleScroll = () => {
+            const currentY = window.scrollY;
+            // 引入迟滞 (Hysteresis) 避免临界点反复横跳
+            if (!isCurrentlyScrolled && currentY > 40) {
+                isCurrentlyScrolled = true;
+                setIsScrolled(true);
+            } else if (isCurrentlyScrolled && currentY <= 10) {
+                isCurrentlyScrolled = false;
+                setIsScrolled(false);
+            }
+        };
+
+        if (window.scrollY > 40) {
+            isCurrentlyScrolled = true;
+            setIsScrolled(true);
+        }
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const shouldCollapseSearch = isScrolled && search.length === 0 && !isSearchFocused;
+
     // Add Modal State
     const [newIssuer, setNewIssuer] = useState('');
     const [newAccount, setNewAccount] = useState('');
@@ -291,50 +321,101 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
             exit={{ opacity: 0 }}
             className="flex flex-col h-full min-h-screen bg-background pb-5"
         >
-            {/* Top Bar */}
-            <div className="sticky top-0 z-20 flex items-center justify-between bg-surface dark:bg-surface p-4 pt-12 shadow-sm transition-colors">
-                <h2 className="text-on-surface text-3xl font-bold leading-tight tracking-tight flex-1">令牌</h2>
-                <div className="flex items-center justify-end gap-3">
+            {/* Sticky Top Bar */}
+            <div className="sticky top-0 z-40 flex flex-col bg-background/90 backdrop-blur-xl transition-colors shadow-sm">
+                <div className="flex items-center justify-between p-4 pt-12">
+                    <h2 className="text-on-surface text-3xl font-bold leading-tight tracking-tight flex-1">令牌</h2>
+                    <div className="flex items-center justify-end gap-3">
+                    <AnimatePresence>
+                        {shouldCollapseSearch && (
+                            <motion.div
+                                layoutId="search-bar-container"
+                                transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                                onClick={() => {
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    setTimeout(() => document.getElementById('token-search-input')?.focus(), 300);
+                                }}
+                                className="flex shrink-0 items-center justify-center rounded-full h-10 w-10 bg-surface-container-high text-on-surface-variant hover:bg-surface-variant transition-colors cursor-pointer"
+                                title="搜索"
+                            >
+                                <motion.div layoutId="search-icon" transition={{ type: "spring", stiffness: 500, damping: 40 }}>
+                                    <SearchIcon className="w-5 h-5" />
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                     <button
                         onClick={() => {
-                            setExportData(tokens);
-                            setOnTheTop('export');
-                        }}
-                        className="flex items-center justify-center rounded-full h-10 w-10 bg-surface-container-high text-on-surface-variant hover:bg-surface-variant transition-colors"
-                        title="批量导出">
-                        <ExportIcon className="w-5 h-5" />
-                    </button>
-                    <button
-                        onClick={onSettingsClick}
-                        className="flex items-center justify-center rounded-full h-10 w-10 bg-surface-container-high text-on-surface-variant hover:bg-surface-variant transition-colors"
-                        title="设置">
-                        <SettingsIcon className="w-5 h-5" />
-                    </button>
+                                setExportData(tokens);
+                                setOnTheTop('export');
+                            }}
+                            className="flex items-center justify-center rounded-full h-10 w-10 bg-surface-container-high text-on-surface-variant hover:bg-surface-variant transition-colors"
+                            title="批量导出">
+                            <ExportIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={onSettingsClick}
+                            className="flex items-center justify-center rounded-full h-10 w-10 bg-surface-container-high text-on-surface-variant hover:bg-surface-variant transition-colors"
+                            title="设置">
+                            <SettingsIcon className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {/* Search Bar */}
-            <div className="px-4 pb-6 pt-2 z-10 sticky top-[88px] bg-background">
-                <div className="relative flex w-full items-center rounded-full bg-surface-container-high h-[56px] transition-colors overflow-hidden group focus-within:bg-surface-variant">
-                    <div className="flex items-center justify-center pl-4 pr-3 text-on-surface-variant">
-                        <SearchIcon className="w-6 h-6" />
-                    </div>
-                    <input
-                        className="flex w-full bg-transparent border-none text-on-surface placeholder:text-on-surface-variant focus:ring-0 text-base font-normal h-full rounded-full"
-                        placeholder="搜索账户"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                    {search && (
-                        <button onClick={() => setSearch('')} className="flex items-center justify-center pr-4 text-on-surface-variant">
-                            <CloseIcon className="w-5 h-5" />
-                        </button>
+            {/* Search Bar (Not Sticky) */}
+            <AnimatePresence initial={false}>
+                    {!shouldCollapseSearch && (
+                        <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                            className="w-full overflow-hidden"
+                        >
+                            <div className="px-4 pb-6 pt-2">
+                                <motion.div 
+                                    layoutId="search-bar-container"
+                                    transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                                    className="relative flex w-full items-center rounded-full bg-surface-container-high h-[56px] transition-colors overflow-hidden group focus-within:bg-surface-variant"
+                                >
+                                    <motion.div layoutId="search-icon" transition={{ type: "spring", stiffness: 500, damping: 40 }} className="flex shrink-0 items-center justify-center pl-4 pr-3 text-on-surface-variant">
+                                        <SearchIcon className="w-6 h-6" />
+                                    </motion.div>
+                                    <motion.input
+                                        id="token-search-input"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                                        className="flex w-full bg-transparent border-none text-on-surface placeholder:text-on-surface-variant focus:ring-0 text-base font-normal h-full rounded-full min-w-0"
+                                    placeholder="搜索账户"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    onFocus={() => setIsSearchFocused(true)}
+                                    onBlur={() => setIsSearchFocused(false)}
+                                />
+                                <AnimatePresence>
+                                    {search && (
+                                        <motion.button 
+                                            initial={{ opacity: 0, scale: 0.5 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.5 }}
+                                            onClick={() => setSearch('')} 
+                                            className="flex shrink-0 items-center justify-center pr-4 text-on-surface-variant"
+                                        >
+                                            <CloseIcon className="w-5 h-5" />
+                                        </motion.button>
+                                    )}
+                                </AnimatePresence>
+                                </motion.div>
+                            </div>
+                        </motion.div>
                     )}
-                </div>
-            </div>
+                </AnimatePresence>
 
             {/* List */}
-            <div className={`flex flex-col ${cardDisplay === 'compact' ? 'gap-2' : 'gap-3'} px-4 overflow-y-auto no-scrollbar pb-24`}>
+            <motion.div layout className={`flex flex-col ${cardDisplay === 'compact' ? 'gap-2' : 'gap-3'} px-4 overflow-y-auto no-scrollbar pb-24`}>
                 <LayoutGroup>
                     <AnimatePresence mode='popLayout'>
                         {filteredTokens.map(token => (
@@ -376,7 +457,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                         </button>
                     </motion.div>
                 )}
-            </div>
+            </motion.div>
 
             {/* Toast Notification */}
             <Toast

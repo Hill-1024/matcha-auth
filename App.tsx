@@ -204,10 +204,10 @@ const App: React.FC = () => {
         {currentPage === 'webdavSettings' && (
             <motion.div
                 key="webdavSettings"
-                initial={{ opacity: 0, x: 50 }}
+                initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 50 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
             >
               <WebDavSettings
                   onBack={() => setCurrentPage('settings')}
@@ -218,10 +218,10 @@ const App: React.FC = () => {
         {currentPage === 'appearanceSettings' && (
             <motion.div
                 key="appearanceSettings"
-                initial={{ opacity: 0, x: 50 }}
+                initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 50 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
             >
               <AppearanceSettings
                   onBack={() => setCurrentPage('settings')}

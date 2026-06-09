@@ -10,14 +10,14 @@
   },
   "scripts": {
     "generate-info": "node scripts/generate-build-info.js",
-    "dev": "npm run generate-info && vite",
+    "dev": "pnpm generate-info && vite",
     "sync-version": "node update-version.js",
-    "build": "npm run generate-info && npm run sync-version && tsc && vite build && npx cap sync",
+    "build": "pnpm generate-info && pnpm sync-version && tsc && vite build && pnpm exec cap sync",
     "preview": "vite preview",
-    "cap:add": "npx cap add android",
-    "cap:sync": "npm run build && npx capacitor-assets generate --android && node update-version.js && npx cap sync",
-    "cap:open": "npx cap open android",
-    "generate-icons": "npx capacitor-assets generate"
+    "cap:add": "pnpm exec cap add android",
+    "cap:sync": "pnpm build && pnpm exec capacitor-assets generate --android && node update-version.js && pnpm exec cap sync",
+    "cap:open": "pnpm exec cap open android",
+    "generate-icons": "pnpm exec capacitor-assets generate"
   },
   "dependencies": {
     "@capacitor/android": "^8.1.0",

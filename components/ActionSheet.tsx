@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {motion} from 'framer-motion';
 import {Token} from '../types';
 import {KeyIcon, DeleteIcon, EditIcon, ExportIcon} from './Icons';
@@ -13,8 +13,16 @@ interface ActionSheetProps {
 }
 
 const ActionSheet: React.FC<ActionSheetProps> = ({token, onClose, onEdit, onExport, onDelete}) => {
+    const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 640);
+
+    useEffect(() => {
+        const handleResize = () => setIsDesktop(window.innerWidth >= 640);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     return (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
             {/* Backdrop */}
             <motion.div
                 initial={{opacity: 0}}
@@ -26,11 +34,11 @@ const ActionSheet: React.FC<ActionSheetProps> = ({token, onClose, onEdit, onExpo
 
             {/* Sheet Content */}
             <motion.div
-                initial={{y: "100%"}}
-                animate={{y: 0}}
-                exit={{y: "100%"}}
-                transition={{type: "spring", stiffness: 300, damping: 30}}
-                className="relative w-full max-w-sm bg-surface-container rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-xl z-10"
+                initial={isDesktop ? { opacity: 0, scale: 0.95 } : { y: "100%" }}
+                animate={isDesktop ? { opacity: 1, scale: 1 } : { y: 0 }}
+                exit={isDesktop ? { opacity: 0, scale: 0.95 } : { y: "100%" }}
+                transition={{type: "spring", stiffness: 400, damping: 30}}
+                className="relative w-full sm:max-w-sm bg-surface-container rounded-t-[2rem] sm:rounded-[2rem] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-6 shadow-xl z-10 border border-transparent sm:border-outline/10 sm:dark:border-white/5"
             >
                 {/* Handle bar for mobile feel */}
                 <div className="w-12 h-1.5 bg-on-surface-variant/20 rounded-full mx-auto mb-6 sm:hidden"></div>
