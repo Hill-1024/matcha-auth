@@ -374,7 +374,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
                             transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                            className="w-full overflow-hidden"
+                            className="relative z-30 w-full overflow-hidden"
                         >
                             <div className="px-4 pb-6 pt-2">
                                 <motion.div 
