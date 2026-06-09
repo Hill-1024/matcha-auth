@@ -10,9 +10,10 @@ interface TokenCardProps {
   onCopy: (code: string) => void;
   onMoreClick: (token: Token) => void;
   onUpdateToken: (id: string, updates: Partial<Token>) => void;
+  cardDisplay: 'loose' | 'compact';
 }
 
-const TokenCard: React.FC<TokenCardProps> = ({ token, onCopy, onMoreClick, onUpdateToken }) => {
+const TokenCard: React.FC<TokenCardProps> = ({ token, onCopy, onMoreClick, onUpdateToken, cardDisplay }) => {
   // Format code with space: "123456" -> "123 456"
   const formattedCode = token.code.match(/.{1,3}/g)?.join(' ') || token.code;
 
@@ -47,12 +48,13 @@ const TokenCard: React.FC<TokenCardProps> = ({ token, onCopy, onMoreClick, onUpd
 
   return (
       <motion.div
+          layout
           onClick={() => onCopy(token.code)}
           whileTap={{ scale: 0.97 }}
           transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          className="group relative flex flex-col justify-between rounded-3xl bg-surface-container p-6 shadow-sm border border-transparent hover:shadow-md hover:bg-surface-container-high transition-colors duration-200 cursor-pointer select-none"
+          className={`group relative flex flex-col justify-between bg-surface-container shadow-sm border border-transparent hover:shadow-md hover:bg-surface-container-high transition-colors duration-200 cursor-pointer select-none ${cardDisplay === 'compact' ? 'rounded-2xl p-4' : 'rounded-3xl p-6'}`}
       >
-        <div className="flex items-start justify-between w-full mb-4">
+        <motion.div layout className={`flex items-start justify-between w-full ${cardDisplay === 'compact' ? 'mb-2' : 'mb-4'}`}>
           <div className="flex items-center gap-4">
             <div className={`flex items-center justify-center rounded-xl shrink-0 size-12 p-2 overflow-hidden ${!token.icon?.startsWith('http') ? 'bg-primary/10' : 'bg-white p-1'}`}>
               {token.icon?.startsWith('http') ? (
@@ -86,9 +88,9 @@ const TokenCard: React.FC<TokenCardProps> = ({ token, onCopy, onMoreClick, onUpd
               <MoreVertIcon className="w-6 h-6" />
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="flex items-center justify-between mt-2 pl-1">
+        <motion.div layout className="flex items-center justify-between mt-2 pl-1">
           <p className="text-primary text-[32px] font-bold tracking-[0.15em] tabular-nums leading-none font-display">
             {formattedCode}
           </p>
@@ -119,7 +121,7 @@ const TokenCard: React.FC<TokenCardProps> = ({ token, onCopy, onMoreClick, onUpd
               {token.remaining}
             </div>
           </div>
-        </div>
+        </motion.div>
       </motion.div>
   );
 };

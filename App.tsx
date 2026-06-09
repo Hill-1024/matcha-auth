@@ -3,15 +3,16 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { motion, AnimatePresence } from 'framer-motion';
 import TokenList from './pages/TokenList';
-import ThemeSettings from './pages/ThemeSettings';
+import Settings from './pages/Settings';
 import WebDavSettings from './pages/WebDavSettings';
+import AppearanceSettings from './pages/AppearanceSettings';
 import { RGB, ThemeColors, PopupType } from './types';
 import { rgbToHex, generateThemeFromSeed, generateThemeFromMonet, applyThemeToDom } from './services/themeService';
 import { getMonetColors, MonetPalette } from './services/monetService';
 import { startWebDavSyncScheduler } from './services/webDavSyncService';
 
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<'home' | 'settings' | 'webdavSettings'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'settings' | 'webdavSettings' | 'appearanceSettings'>('home');
 
   // Theme Mode State: 'light' | 'dark' | 'system'
   const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>(() => {
@@ -39,6 +40,10 @@ const App: React.FC = () => {
 
   // Lifted State for Popups to handle Back Button
   const [onTheTop, setOnTheTop] = useState<PopupType>('none');
+
+  const [cardDisplay, setCardDisplay] = useState<'loose' | 'compact'>(() => {
+    return (localStorage.getItem('matcha_card_display') as 'loose' | 'compact') || 'loose';
+  });
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
@@ -78,6 +83,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('matcha_theme_mode', themeMode);
   }, [themeMode]);
+
+  useEffect(() => {
+    localStorage.setItem('matcha_card_display', cardDisplay);
+  }, [cardDisplay]);
 
   useEffect(() => {
     return startWebDavSyncScheduler();
@@ -132,7 +141,7 @@ const App: React.FC = () => {
     const setupBackListener = async () => {
       // Register listener for the hardware back button
       backButtonListener = await CapacitorApp.addListener('backButton', () => {
-        if (currentPage === 'webdavSettings') {
+        if (currentPage === 'webdavSettings' || currentPage === 'appearanceSettings') {
           setCurrentPage('settings');
         } else if (currentPage === 'settings') {
           // If in settings, go back to home
@@ -171,6 +180,7 @@ const App: React.FC = () => {
                   onSettingsClick={() => setCurrentPage('settings')}
                   onTheTop={onTheTop}
                   setOnTheTop={setOnTheTop}
+                  cardDisplay={cardDisplay}
               />
             </motion.div>
         )}
@@ -183,16 +193,10 @@ const App: React.FC = () => {
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.2 }}
             >
-              <ThemeSettings
+              <Settings
                   onBack={() => setCurrentPage('home')}
                   onWebDavClick={() => setCurrentPage('webdavSettings')}
-                  themeMode={themeMode}
-                  setThemeMode={setThemeMode}
-                  selectedPreset={selectedPreset}
-                  setSelectedPreset={setSelectedPreset}
-                  customRgb={customRgb}
-                  setCustomRgb={setCustomRgb}
-                  isMonetAvailable={!!monetPalette}
+                  onAppearanceClick={() => setCurrentPage('appearanceSettings')}
               />
             </motion.div>
         )}
@@ -200,13 +204,36 @@ const App: React.FC = () => {
         {currentPage === 'webdavSettings' && (
             <motion.div
                 key="webdavSettings"
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 50 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, x: 50 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
             >
               <WebDavSettings
                   onBack={() => setCurrentPage('settings')}
+              />
+            </motion.div>
+        )}
+
+        {currentPage === 'appearanceSettings' && (
+            <motion.div
+                key="appearanceSettings"
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 50 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            >
+              <AppearanceSettings
+                  onBack={() => setCurrentPage('settings')}
+                  themeMode={themeMode}
+                  setThemeMode={setThemeMode}
+                  selectedPreset={selectedPreset}
+                  setSelectedPreset={setSelectedPreset}
+                  customRgb={customRgb}
+                  setCustomRgb={setCustomRgb}
+                  isMonetAvailable={!!monetPalette}
+                  cardDisplay={cardDisplay}
+                  setCardDisplay={setCardDisplay}
               />
             </motion.div>
         )}

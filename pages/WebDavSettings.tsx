@@ -133,10 +133,7 @@ const WebDavSettings: React.FC<WebDavSettingsProps> = ({ onBack }) => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
+    <div
       className="flex min-h-screen flex-col bg-background pb-10 text-on-background"
     >
       <div className="sticky top-0 z-20 flex items-center bg-background/90 p-4 pt-12 backdrop-blur-xl">
@@ -315,7 +312,7 @@ const WebDavSettings: React.FC<WebDavSettingsProps> = ({ onBack }) => {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

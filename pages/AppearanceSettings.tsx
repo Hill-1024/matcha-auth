@@ -1,8 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { RGB } from '../types';
 import { hexToRgb, rgbToHex } from '../services/themeService';
-import { loadWebDavSettings, subscribeWebDavSettings } from '../services/webDavSyncService';
-import { BUILD_INFO } from '@/buildInfo';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ArrowBackIcon,
@@ -14,13 +12,12 @@ import {
     CheckIcon,
     TuneIcon,
     PaletteIcon,
-    InfoIcon,
-    CloudQueueIcon
+    ViewLooseIcon,
+    ViewCompactIcon
 } from '../components/Icons';
 
-interface ThemeSettingsProps {
+interface AppearanceSettingsProps {
     onBack: () => void;
-    onWebDavClick: () => void;
     themeMode: 'light' | 'dark' | 'system';
     setThemeMode: (mode: 'light' | 'dark' | 'system') => void;
     selectedPreset: string;
@@ -28,6 +25,8 @@ interface ThemeSettingsProps {
     customRgb: RGB;
     setCustomRgb: (rgb: RGB) => void;
     isMonetAvailable: boolean;
+    cardDisplay: 'loose' | 'compact';
+    setCardDisplay: (mode: 'loose' | 'compact') => void;
 }
 
 const PRESETS = [
@@ -39,18 +38,18 @@ const PRESETS = [
     { name: 'Rose', label: '玫瑰', color: '#BC8F8F' },
 ];
 
-const ThemeSettings: React.FC<ThemeSettingsProps> = ({
+const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
                                                          onBack,
-                                                         onWebDavClick,
                                                          themeMode,
                                                          setThemeMode,
                                                          selectedPreset,
                                                          setSelectedPreset,
                                                          customRgb,
                                                          setCustomRgb,
-                                                         isMonetAvailable
+                                                         isMonetAvailable,
+                                                         cardDisplay,
+                                                         setCardDisplay
                                                      }) => {
-    const [isWebDavEnabled, setIsWebDavEnabled] = useState(() => loadWebDavSettings().enabled);
 
     const handlePresetSelect = (name: string, hex: string) => {
         setSelectedPreset(name);
@@ -64,19 +63,8 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({
         setSelectedPreset('Custom');
     };
 
-    useEffect(() => {
-        return subscribeWebDavSettings((settings) => {
-            setIsWebDavEnabled(settings.enabled);
-        });
-    }, []);
-
     return (
-        <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            className="flex flex-col h-full min-h-screen bg-background text-on-background pb-10"
-        >
+        <div className="flex flex-col h-full min-h-screen bg-background text-on-background pb-10">
             {/* Header */}
             <div className="sticky top-0 z-20 flex items-center bg-background/90 backdrop-blur-xl p-4 pt-12">
                 <button
@@ -84,7 +72,7 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({
                     className="text-on-surface flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-on-surface/10 transition-colors mr-2">
                     <ArrowBackIcon className="w-6 h-6" />
                 </button>
-                <h1 className="text-2xl font-semibold tracking-tight text-on-surface flex-1">设置</h1>
+                <h1 className="text-2xl font-semibold tracking-tight text-on-surface flex-1">外观与主题</h1>
             </div>
 
             <div className="flex flex-col px-4 gap-6 mt-2 overflow-y-auto no-scrollbar pb-20">
@@ -162,9 +150,30 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({
                     </div>
                 </div>
 
+                {/* Card Display Mode Selector */}
+                <div className="flex flex-col gap-3 mt-2">
+                    <h3 className="text-lg font-bold text-on-surface px-2">卡片显示</h3>
+                    <div className="flex bg-surface-container-high p-1 rounded-full border border-outline/10 dark:border-white/5">
+                        <button
+                            onClick={() => setCardDisplay('loose')}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full text-sm font-bold transition-all duration-200 ${cardDisplay === 'loose' ? 'bg-surface shadow-md text-primary scale-100' : 'text-on-surface-variant hover:text-on-surface scale-95 opacity-70 hover:opacity-100'}`}
+                        >
+                            <ViewLooseIcon className="w-5 h-5" />
+                            <span>宽松</span>
+                        </button>
+                        <button
+                            onClick={() => setCardDisplay('compact')}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full text-sm font-bold transition-all duration-200 ${cardDisplay === 'compact' ? 'bg-surface shadow-md text-primary scale-100' : 'text-on-surface-variant hover:text-on-surface scale-95 opacity-70 hover:opacity-100'}`}
+                        >
+                            <ViewCompactIcon className="w-5 h-5" />
+                            <span>紧凑</span>
+                        </button>
+                    </div>
+                </div>
+
                 {/* Dynamic Color Toggle */}
                 {isMonetAvailable && (
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3 mt-2">
                         <h3 className="text-lg font-bold text-on-surface px-2">动态取色 (Monet)</h3>
                         <div
                             className="flex items-center justify-between bg-surface-container-high p-4 rounded-[2rem] border border-outline/10 dark:border-white/5 cursor-pointer hover:bg-surface-variant/50 transition-colors"
@@ -199,7 +208,7 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({
 
                 {/* Static Colors */}
                 <motion.div
-                    className="flex flex-col gap-4"
+                    className="flex flex-col gap-4 mt-2"
                     animate={{
                         opacity: selectedPreset === 'Dynamic' ? 0.5 : 1,
                         filter: selectedPreset === 'Dynamic' ? 'grayscale(100%)' : 'grayscale(0%)'
@@ -307,68 +316,9 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({
                         </motion.div>
                     )}
                 </AnimatePresence>
-
-                {/* Sync Section */}
-                <div className="flex flex-col gap-4 mt-6">
-                    <h3 className="text-lg font-bold text-on-surface px-2">同步</h3>
-                    <button
-                        type="button"
-                        onClick={onWebDavClick}
-                        className="bg-surface-container rounded-3xl p-5 shadow-sm border border-outline/10 dark:border-white/5 flex items-center justify-between gap-4 text-left hover:bg-surface-container-high transition-colors"
-                    >
-                        <div className="flex items-center gap-4 min-w-0">
-                            <div className="p-3 bg-primary/10 rounded-full text-primary shrink-0">
-                                <CloudQueueIcon className="w-6 h-6" />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                                <span className="font-bold text-on-surface text-base">WebDAV 同步</span>
-                                <span className="text-xs text-on-surface-variant">{isWebDavEnabled ? '已开启' : '未开启'}</span>
-                            </div>
-                        </div>
-                        <ArrowBackIcon className="w-5 h-5 rotate-180 text-on-surface-variant shrink-0" />
-                    </button>
-                </div>
-
-                {/* About App Section */}
-                <div className="flex flex-col gap-4 mt-6">
-                    <h3 className="text-lg font-bold text-on-surface px-2">关于应用</h3>
-                    <div className="bg-surface-container rounded-3xl p-5 shadow-sm border border-outline/10 dark:border-white/5 flex flex-col gap-4">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-surface rounded-full text-primary">
-                                <InfoIcon className="w-6 h-6" />
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="font-bold text-on-surface text-lg">{BUILD_INFO.appName}</span>
-                                <span className="text-xs text-on-surface-variant">{BUILD_INFO.description}</span>
-                            </div>
-                        </div>
-
-                        <div className="w-full h-px bg-outline/10"></div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="flex flex-col">
-                                <span className="text-[10px] uppercase font-bold text-on-surface-variant/70 tracking-wider">版本 (Version)</span>
-                                <span className="text-sm font-medium text-on-surface">{BUILD_INFO.version}</span>
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-[10px] uppercase font-bold text-on-surface-variant/70 tracking-wider">构建环境 (Env)</span>
-                                <span className="text-sm font-medium text-on-surface">{BUILD_INFO.environment}</span>
-                            </div>
-                            <div className="flex flex-col col-span-2">
-                                <span className="text-[10px] uppercase font-bold text-on-surface-variant/70 tracking-wider">构建时间 (Build Time)</span>
-                                <span className="text-sm font-mono text-on-surface opacity-80">{BUILD_INFO.buildTime}</span>
-                            </div>
-                            <div className="flex flex-col col-span-2">
-                                <span className="text-[10px] uppercase font-bold text-on-surface-variant/70 tracking-wider">项目地址 (Project Url)</span>
-                                <span className="text-sm font-mono text-on-surface opacity-80">{BUILD_INFO.ProjectUrl}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
-        </motion.div>
+        </div>
     );
 };
 
-export default ThemeSettings;
+export default AppearanceSettings;

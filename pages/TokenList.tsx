@@ -33,9 +33,10 @@ interface TokenListProps {
     onSettingsClick: () => void;
     onTheTop: PopupType;
     setOnTheTop: (popup: PopupType) => void;
+    cardDisplay: 'loose' | 'compact';
 }
 
-const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnTheTop }) => {
+const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnTheTop, cardDisplay }) => {
     // Load initial state from local storage or empty array
     const [tokens, setTokens] = useState<Token[]>(() => readTokensFromStorage());
     const persistentTokenSnapshot = useMemo(() => createTokenSnapshot(tokens), [tokens]);
@@ -333,7 +334,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
             </div>
 
             {/* List */}
-            <div className="flex flex-col gap-3 px-4 overflow-y-auto no-scrollbar pb-24">
+            <div className={`flex flex-col ${cardDisplay === 'compact' ? 'gap-2' : 'gap-3'} px-4 overflow-y-auto no-scrollbar pb-24`}>
                 <LayoutGroup>
                     <AnimatePresence mode='popLayout'>
                         {filteredTokens.map(token => (
@@ -353,6 +354,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                                         setSelectedToken(t);
                                         setOnTheTop('actionSheet');
                                     }}
+                                    cardDisplay={cardDisplay}
                                 />
                             </motion.div>
                         ))}

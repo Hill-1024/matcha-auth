@@ -6,6 +6,6 @@ export const BUILD_INFO = {
   "version": "2.5.9",
   "environment": "Capacitor/Android",
   "ProjectUrl": "https://github.com/Hill-1024/matcha-auth",
-  "buildTime": "2026/6/7 11:24:03",
+  "buildTime": "2026/6/9 23:28:12",
   "description": "A Material You styled 2FA Token Authenticator"
 };
