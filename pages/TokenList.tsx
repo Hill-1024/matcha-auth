@@ -58,9 +58,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
     const [toastMessage, setToastMessage] = useState('');
     const [isToastVisible, setIsToastVisible] = useState(false);
 
-    // Scroll & Search State
     const [isScrolled, setIsScrolled] = useState(false);
-    const [isSearchFocused, setIsSearchFocused] = useState(false);
 
     useEffect(() => {
         let isCurrentlyScrolled = false;
@@ -69,7 +67,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
             const currentY = window.scrollY;
 
             if (currentY > 10 && document.activeElement?.id === 'token-search-input') {
-                document.activeElement.blur();
+                (document.activeElement as HTMLElement).blur();
             }
 
             // 引入迟滞 (Hysteresis) 避免临界点反复横跳
@@ -397,8 +395,6 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                                     placeholder="搜索账户"
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
-                                    onFocus={() => setIsSearchFocused(true)}
-                                    onBlur={() => setIsSearchFocused(false)}
                                 />
                                 <AnimatePresence>
                                     {search && (
