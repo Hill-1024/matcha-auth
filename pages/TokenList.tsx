@@ -332,8 +332,10 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                     <AnimatePresence>
                         {shouldCollapseSearch && (
                             <motion.div
-                                layoutId="search-bar-container"
-                                transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                transition={{ duration: 0.2 }}
                                 onClick={() => {
                                     window.scrollTo({ top: 0, behavior: 'smooth' });
                                     setTimeout(() => document.getElementById('token-search-input')?.focus(), 300);
@@ -341,9 +343,9 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                                 className={`flex shrink-0 items-center justify-center rounded-full h-10 w-10 transition-colors cursor-pointer ${search ? 'bg-primary/10 text-primary hover:bg-primary/20' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-variant'}`}
                                 title="搜索"
                             >
-                                <motion.div layoutId="search-icon" transition={{ type: "spring", stiffness: 500, damping: 40 }}>
+                                <div className="flex shrink-0 items-center justify-center">
                                     <SearchIcon className="w-5 h-5" />
-                                </motion.div>
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -377,14 +379,10 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                             className="relative z-30 w-full overflow-hidden"
                         >
                             <div className="px-4 pb-6 pt-2">
-                                <motion.div 
-                                    layoutId="search-bar-container"
-                                    transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                                    className="relative flex w-full items-center rounded-full bg-surface-container-high h-[56px] transition-colors overflow-hidden group focus-within:bg-surface-variant"
-                                >
-                                    <motion.div layoutId="search-icon" transition={{ type: "spring", stiffness: 500, damping: 40 }} className="flex shrink-0 items-center justify-center pl-4 pr-3 text-on-surface-variant">
+                                <div className="relative flex w-full items-center rounded-full bg-surface-container-high h-[56px] transition-colors overflow-hidden group focus-within:bg-surface-variant">
+                                    <div className="flex shrink-0 items-center justify-center pl-4 pr-3 text-on-surface-variant">
                                         <SearchIcon className="w-6 h-6" />
-                                    </motion.div>
+                                    </div>
                                     <motion.input
                                         id="token-search-input"
                                         initial={{ opacity: 0 }}
@@ -409,7 +407,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                                         </motion.button>
                                     )}
                                 </AnimatePresence>
-                                </motion.div>
+                                </div>
                             </div>
                         </motion.div>
                     )}
