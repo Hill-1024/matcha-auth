@@ -19,6 +19,8 @@
 
   --md-sys-color-background: #FDFCF8;
   --md-sys-color-on-background: #1B1C19;
+  --matcha-status-bar-background: var(--md-sys-color-background);
+  --matcha-status-bar-height: 0px;
 
   --md-sys-color-surface: #FDFCF8;
   --md-sys-color-on-surface: #1B1C19;

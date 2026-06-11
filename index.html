@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#FDFCF8" />
   <title>Matcha 令牌</title>
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <script>
@@ -23,10 +24,23 @@
           document.documentElement.classList.remove('dark');
         }
 
+        var statusBarBackground = isDark ? '#141613' : '#FDFCF8';
+
         // 2. Apply Cached Theme CSS Variables
         var cachedCss = localStorage.getItem('matcha_cached_theme_css');
         if (cachedCss) {
           document.documentElement.style.cssText = cachedCss;
+          var backgroundMatch = cachedCss.match(/--md-sys-color-background:([^;]+)/);
+          if (backgroundMatch && backgroundMatch[1]) {
+            statusBarBackground = backgroundMatch[1].trim();
+          }
+        }
+
+        document.documentElement.style.setProperty('--matcha-status-bar-background', statusBarBackground);
+        document.documentElement.style.backgroundColor = statusBarBackground;
+        var themeColorMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeColorMeta) {
+          themeColorMeta.setAttribute('content', statusBarBackground);
         }
       } catch (e) {
         console.error('Error applying initial theme:', e);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { motion, AnimatePresence } from 'framer-motion';
 import TokenList from './pages/TokenList';
@@ -10,6 +11,28 @@ import { RGB, ThemeColors, PopupType } from './types';
 import { rgbToHex, generateThemeFromSeed, generateThemeFromMonet, applyThemeToDom } from './services/themeService';
 import { getMonetColors, MonetPalette } from './services/monetService';
 import { startWebDavSyncScheduler } from './services/webDavSyncService';
+
+const STATUS_BAR_BACKGROUND_PROPERTY = '--matcha-status-bar-background';
+const STATUS_BAR_HEIGHT_PROPERTY = '--matcha-status-bar-height';
+const isNativePlatform = Capacitor.isNativePlatform();
+
+const setThemeColorMeta = (color: string) => {
+  let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.name = 'theme-color';
+    document.head.appendChild(meta);
+  }
+
+  meta.content = color;
+};
+
+const setStatusBarCssBackground = (color: string) => {
+  document.documentElement.style.setProperty(STATUS_BAR_BACKGROUND_PROPERTY, color);
+  document.documentElement.style.backgroundColor = color;
+  document.body.style.backgroundColor = color;
+  setThemeColorMeta(color);
+};
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<'home' | 'settings' | 'webdavSettings' | 'appearanceSettings'>('home');
@@ -121,11 +144,29 @@ const App: React.FC = () => {
 
     if (theme) {
       applyThemeToDom(theme);
-      // Set status bar color and style
+      setStatusBarCssBackground(theme.background);
+
+      // On Android 16+ the native status bar background API is ignored because
+      // edge-to-edge is enforced. Keep WebView behind the transparent bar and
+      // paint that area ourselves; older Android still receives the native color.
       const style = isDark ? Style.Dark : Style.Light;
 
-      StatusBar.setBackgroundColor({ color: theme.background }).catch(() => {});
-      StatusBar.setStyle({ style }).catch(() => {});
+      if (isNativePlatform) {
+        StatusBar.show().catch(() => {});
+        StatusBar.setStyle({ style }).catch(() => {});
+        StatusBar.setOverlaysWebView({ overlay: true })
+            .then(() => StatusBar.setBackgroundColor({ color: theme.background }))
+            .catch(() => {
+              StatusBar.setBackgroundColor({ color: theme.background }).catch(() => {});
+            });
+        StatusBar.getInfo()
+            .then(info => {
+              if (info.height > 0) {
+                document.documentElement.style.setProperty(STATUS_BAR_HEIGHT_PROPERTY, `${info.height}px`);
+              }
+            })
+            .catch(() => {});
+      }
     }
   }, [customRgb, isDark, selectedPreset, monetPalette]);
 
@@ -167,6 +208,16 @@ const App: React.FC = () => {
   }, [currentPage, onTheTop]);
 
   return (
+      <>
+        {isNativePlatform && (
+            <div
+                aria-hidden="true"
+                className="pointer-events-none fixed inset-x-0 top-0 z-[45] bg-[var(--matcha-status-bar-background)]"
+                style={{
+                  height: 'max(24px, var(--matcha-status-bar-height), env(safe-area-inset-top, 0px))',
+                }}
+            />
+        )}
       <AnimatePresence mode="wait">
         {currentPage === 'home' && (
             <motion.div
@@ -238,6 +289,7 @@ const App: React.FC = () => {
             </motion.div>
         )}
       </AnimatePresence>
+      </>
   );
 };
 

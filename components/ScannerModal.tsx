@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import jsQR, { type Point, type QRCode } from 'jsqr';
+import jsQR, { type Options, type Point, type QRCode } from 'jsqr';
 import { Capacitor } from '@capacitor/core';
 import { Camera } from '@capacitor/camera';
 import { CloseIcon, QrCodeScannerIcon } from './Icons';
@@ -12,6 +12,29 @@ interface ScannerModalProps {
 
 type ScanPhase = 'searching' | 'detected' | 'invalid';
 
+type InversionAttempts = Options['inversionAttempts'];
+
+interface NativeBarcode {
+    rawValue: string;
+    cornerPoints?: Point[];
+    boundingBox?: DOMRectReadOnly;
+}
+
+interface NativeBarcodeDetector {
+    detect: (source: CanvasImageSource) => Promise<NativeBarcode[]>;
+}
+
+interface NativeBarcodeDetectorConstructor {
+    new(options: { formats: string[] }): NativeBarcodeDetector;
+    getSupportedFormats?: () => Promise<string[]>;
+}
+
+declare global {
+    interface Window {
+        BarcodeDetector?: NativeBarcodeDetectorConstructor;
+    }
+}
+
 interface QrOverlay {
     x: number;
     y: number;
@@ -19,6 +42,18 @@ interface QrOverlay {
     height: number;
     corners: Point[];
     detectedAt: number;
+}
+
+interface SourceRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+interface FrameDecodeResult {
+    data: string;
+    overlay: QrOverlay;
 }
 
 type CameraTrackCapabilities = MediaTrackCapabilities & {
@@ -29,10 +64,10 @@ type CameraTrackConstraintSet = MediaTrackConstraintSet & {
     focusMode?: string;
 };
 
-const NORMAL_SCAN_WIDTH = 640;
-const HIGH_DETAIL_SCAN_WIDTH = 960;
+const NORMAL_SCAN_LONG_SIDE = 720;
+const HIGH_DETAIL_SCAN_LONG_SIDE = 1280;
 const SCAN_INTERVAL_MS = 120;
-const HIGH_DETAIL_INTERVAL_MS = 360;
+const HIGH_DETAIL_INTERVAL_MS = 480;
 const BOX_HIDE_DELAY_MS = 520;
 const SUCCESS_DELAY_MS = 180;
 
@@ -65,27 +100,89 @@ const getVideoPlacement = (video: HTMLVideoElement) => {
     };
 };
 
-const mapPointToOverlay = (
-    point: Point,
-    canvas: HTMLCanvasElement,
-    placement: ReturnType<typeof getVideoPlacement>
-): Point => ({
-    x: placement.x + (point.x / canvas.width) * placement.width,
-    y: placement.y + (point.y / canvas.height) * placement.height,
+const getFullVideoSourceRect = (video: HTMLVideoElement): SourceRect => ({
+    x: 0,
+    y: 0,
+    width: video.videoWidth,
+    height: video.videoHeight,
 });
 
-const mapQrToOverlay = (
-    code: QRCode,
-    canvas: HTMLCanvasElement,
+const getVisibleVideoSourceRect = (video: HTMLVideoElement): SourceRect => {
+    const rect = video.getBoundingClientRect();
+    const placement = getVideoPlacement(video);
+
+    if (
+        rect.width <= 0 ||
+        rect.height <= 0 ||
+        placement.width <= 0 ||
+        placement.height <= 0
+    ) {
+        return getFullVideoSourceRect(video);
+    }
+
+    const visibleLeft = Math.max(0, -placement.x);
+    const visibleTop = Math.max(0, -placement.y);
+    const visibleRight = Math.min(placement.width, rect.width - placement.x);
+    const visibleBottom = Math.min(placement.height, rect.height - placement.y);
+
+    if (visibleRight <= visibleLeft || visibleBottom <= visibleTop) {
+        return getFullVideoSourceRect(video);
+    }
+
+    return {
+        x: (visibleLeft / placement.width) * video.videoWidth,
+        y: (visibleTop / placement.height) * video.videoHeight,
+        width: ((visibleRight - visibleLeft) / placement.width) * video.videoWidth,
+        height: ((visibleBottom - visibleTop) / placement.height) * video.videoHeight,
+    };
+};
+
+const cropSourceRect = (rect: SourceRect, ratio: number): SourceRect => {
+    const width = rect.width * ratio;
+    const height = rect.height * ratio;
+
+    return {
+        x: rect.x + (rect.width - width) / 2,
+        y: rect.y + (rect.height - height) / 2,
+        width,
+        height,
+    };
+};
+
+const clampSourceRect = (rect: SourceRect, video: HTMLVideoElement): SourceRect => {
+    const x = Math.max(0, Math.min(rect.x, video.videoWidth - 1));
+    const y = Math.max(0, Math.min(rect.y, video.videoHeight - 1));
+    const width = Math.max(1, Math.min(rect.width, video.videoWidth - x));
+    const height = Math.max(1, Math.min(rect.height, video.videoHeight - y));
+
+    return { x, y, width, height };
+};
+
+const isDifferentSourceRect = (a: SourceRect, b: SourceRect) => (
+    Math.abs(a.x - b.x) > 2 ||
+    Math.abs(a.y - b.y) > 2 ||
+    Math.abs(a.width - b.width) > 2 ||
+    Math.abs(a.height - b.height) > 2
+);
+
+const mapPointToOverlay = (
+    point: Point,
+    sourceWidth: number,
+    sourceHeight: number,
+    placement: ReturnType<typeof getVideoPlacement>
+): Point => ({
+    x: placement.x + (point.x / sourceWidth) * placement.width,
+    y: placement.y + (point.y / sourceHeight) * placement.height,
+});
+
+const buildOverlayFromCorners = (
+    sourceCorners: Point[],
+    sourceWidth: number,
+    sourceHeight: number,
     video: HTMLVideoElement
 ): QrOverlay => {
     const placement = getVideoPlacement(video);
-    const corners = [
-        mapPointToOverlay(code.location.topLeftCorner, canvas, placement),
-        mapPointToOverlay(code.location.topRightCorner, canvas, placement),
-        mapPointToOverlay(code.location.bottomRightCorner, canvas, placement),
-        mapPointToOverlay(code.location.bottomLeftCorner, canvas, placement),
-    ];
+    const corners = sourceCorners.map(point => mapPointToOverlay(point, sourceWidth, sourceHeight, placement));
     const xs = corners.map(point => point.x);
     const ys = corners.map(point => point.y);
     const minX = Math.min(...xs);
@@ -104,12 +201,77 @@ const mapQrToOverlay = (
     };
 };
 
+const mapQrToOverlayFromSourceRect = (
+    code: QRCode,
+    canvas: HTMLCanvasElement,
+    sourceRect: SourceRect,
+    video: HTMLVideoElement
+): QrOverlay => {
+    const sourceCorners = [
+        code.location.topLeftCorner,
+        code.location.topRightCorner,
+        code.location.bottomRightCorner,
+        code.location.bottomLeftCorner,
+    ].map(point => ({
+        x: sourceRect.x + (point.x / canvas.width) * sourceRect.width,
+        y: sourceRect.y + (point.y / canvas.height) * sourceRect.height,
+    }));
+
+    return buildOverlayFromCorners(sourceCorners, video.videoWidth, video.videoHeight, video);
+};
+
+const mapNativeBarcodeToOverlay = (
+    barcode: NativeBarcode,
+    video: HTMLVideoElement
+): QrOverlay | null => {
+    let corners = barcode.cornerPoints?.slice(0, 4);
+
+    if ((!corners || corners.length < 4) && barcode.boundingBox) {
+        const { x, y, width, height } = barcode.boundingBox;
+        corners = [
+            { x, y },
+            { x: x + width, y },
+            { x: x + width, y: y + height },
+            { x, y: y + height },
+        ];
+    }
+
+    if (!corners || corners.length < 4) return null;
+    return buildOverlayFromCorners(corners, video.videoWidth, video.videoHeight, video);
+};
+
+const createNativeQrDetector = async (): Promise<NativeBarcodeDetector | null> => {
+    const Detector = window.BarcodeDetector;
+    if (!Detector) return null;
+
+    try {
+        const supportedFormats = await Detector.getSupportedFormats?.();
+        if (supportedFormats && !supportedFormats.includes('qr_code')) {
+            return null;
+        }
+
+        return new Detector({ formats: ['qr_code'] });
+    } catch {
+        return null;
+    }
+};
+
 const requestCameraStream = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error('当前环境不支持摄像头');
     }
 
     const primaryConstraints: MediaStreamConstraints = {
+        audio: false,
+        video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 2560 },
+            height: { ideal: 1440 },
+            frameRate: { ideal: 30, max: 30 },
+        },
+    };
+
+    const hdConstraints: MediaStreamConstraints = {
         audio: false,
         video: {
             facingMode: { ideal: 'environment' },
@@ -129,11 +291,18 @@ const requestCameraStream = async () => {
         },
     };
 
-    try {
-        return await navigator.mediaDevices.getUserMedia(primaryConstraints);
-    } catch {
-        return navigator.mediaDevices.getUserMedia(fallbackConstraints);
+    let lastError: unknown;
+
+    for (const constraints of [primaryConstraints, hdConstraints, fallbackConstraints]) {
+        try {
+            return await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (err) {
+            lastError = err;
+            // Try the next quality tier.
+        }
     }
+
+    throw lastError instanceof Error ? lastError : new Error('无法启动摄像头');
 };
 
 const tuneCameraTrack = async (stream: MediaStream) => {
@@ -168,6 +337,9 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ onScan, onClose }) => {
 
     useEffect(() => {
         let stream: MediaStream | null = null;
+        let nativeDetector: NativeBarcodeDetector | null = null;
+        let nativeDetectorFailed = false;
+        let isScanning = false;
         let disposed = false;
 
         const clearBoxLater = () => {
@@ -183,17 +355,118 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ onScan, onClose }) => {
             }, BOX_HIDE_DELAY_MS);
         };
 
-        const scheduleScan = (scanFrame: () => void) => {
+        const scheduleScan = (scanFrame: () => void | Promise<void>) => {
             if (!disposed && !hasScannedRef.current) {
-                scanTimerRef.current = window.setTimeout(scanFrame, SCAN_INTERVAL_MS);
+                scanTimerRef.current = window.setTimeout(() => {
+                    void scanFrame();
+                }, SCAN_INTERVAL_MS);
             }
         };
 
-        const scanFrame = () => {
+        const scanNativeFrame = async (video: HTMLVideoElement) => {
+            if (!nativeDetector || nativeDetectorFailed) return null;
+
+            try {
+                const barcodes = await nativeDetector.detect(video);
+                const barcode = barcodes.find(item => item.rawValue);
+                if (!barcode) return null;
+
+                const overlay = mapNativeBarcodeToOverlay(barcode, video);
+                if (!overlay) return null;
+
+                return { data: barcode.rawValue, overlay };
+            } catch {
+                nativeDetectorFailed = true;
+                return null;
+            }
+        };
+
+        const decodeJsQrRegion = (
+            video: HTMLVideoElement,
+            canvas: HTMLCanvasElement,
+            ctx: CanvasRenderingContext2D,
+            sourceRect: SourceRect,
+            targetLongSide: number,
+            inversionAttempts: InversionAttempts
+        ): FrameDecodeResult | null => {
+            const rect = clampSourceRect(sourceRect, video);
+            const scale = targetLongSide / Math.max(rect.width, rect.height);
+            const scaledWidth = Math.max(1, Math.round(rect.width * scale));
+            const scaledHeight = Math.max(1, Math.round(rect.height * scale));
+
+            if (canvas.width !== scaledWidth) canvas.width = scaledWidth;
+            if (canvas.height !== scaledHeight) canvas.height = scaledHeight;
+
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(
+                video,
+                rect.x,
+                rect.y,
+                rect.width,
+                rect.height,
+                0,
+                0,
+                scaledWidth,
+                scaledHeight
+            );
+
+            const imageData = ctx.getImageData(0, 0, scaledWidth, scaledHeight);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts,
+            });
+
+            if (!code?.data) return null;
+
+            return {
+                data: code.data,
+                overlay: mapQrToOverlayFromSourceRect(code, canvas, rect, video),
+            };
+        };
+
+        const finishDecodedQr = (
+            data: string,
+            overlay: QrOverlay,
+            scanFrame: () => void | Promise<void>
+        ) => {
+            setQrOverlay(overlay);
+
+            if (isTokenQrData(data)) {
+                hasScannedRef.current = true;
+                setScanPhase('detected');
+                completeTimerRef.current = window.setTimeout(() => {
+                    const accepted = onScan(data);
+                    if (accepted === false) {
+                        hasScannedRef.current = false;
+                        setScanPhase('invalid');
+                        clearBoxLater();
+                        scheduleScan(scanFrame);
+                    }
+                }, SUCCESS_DELAY_MS);
+                return true;
+            }
+
+            setScanPhase('invalid');
+            clearBoxLater();
+            return false;
+        };
+
+        const scanFrame = async () => {
+            if (isScanning) {
+                scheduleScan(scanFrame);
+                return;
+            }
+
+            isScanning = true;
             const video = videoRef.current;
 
             try {
                 if (!video || video.readyState < video.HAVE_ENOUGH_DATA || video.videoWidth === 0) {
+                    return;
+                }
+
+                const nativeResult = await scanNativeFrame(video);
+                if (nativeResult) {
+                    finishDecodedQr(nativeResult.data, nativeResult.overlay, scanFrame);
                     return;
                 }
 
@@ -209,50 +482,65 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ onScan, onClose }) => {
 
                 const now = Date.now();
                 const shouldUseHighDetail = now - lastHighDetailScanRef.current > HIGH_DETAIL_INTERVAL_MS;
-                const targetWidth = shouldUseHighDetail ? HIGH_DETAIL_SCAN_WIDTH : NORMAL_SCAN_WIDTH;
 
                 if (shouldUseHighDetail) {
                     lastHighDetailScanRef.current = now;
                 }
 
-                const processingWidth = Math.min(targetWidth, video.videoWidth);
-                const scale = processingWidth / video.videoWidth;
-                const scaledWidth = Math.round(video.videoWidth * scale);
-                const scaledHeight = Math.round(video.videoHeight * scale);
+                const visibleRect = getVisibleVideoSourceRect(video);
+                const fullRect = getFullVideoSourceRect(video);
+                const attempts: Array<{
+                    sourceRect: SourceRect;
+                    targetLongSide: number;
+                    inversionAttempts: InversionAttempts;
+                }> = [
+                    {
+                        sourceRect: visibleRect,
+                        targetLongSide: shouldUseHighDetail ? HIGH_DETAIL_SCAN_LONG_SIDE : NORMAL_SCAN_LONG_SIDE,
+                        inversionAttempts: shouldUseHighDetail ? 'attemptBoth' : 'dontInvert',
+                    },
+                ];
 
-                if (canvas.width !== scaledWidth) canvas.width = scaledWidth;
-                if (canvas.height !== scaledHeight) canvas.height = scaledHeight;
+                if (shouldUseHighDetail) {
+                    attempts.push(
+                        {
+                            sourceRect: cropSourceRect(visibleRect, 0.72),
+                            targetLongSide: HIGH_DETAIL_SCAN_LONG_SIDE,
+                            inversionAttempts: 'attemptBoth',
+                        },
+                        {
+                            sourceRect: cropSourceRect(visibleRect, 0.52),
+                            targetLongSide: HIGH_DETAIL_SCAN_LONG_SIDE,
+                            inversionAttempts: 'attemptBoth',
+                        }
+                    );
 
-                ctx.drawImage(video, 0, 0, scaledWidth, scaledHeight);
+                    if (isDifferentSourceRect(visibleRect, fullRect)) {
+                        attempts.push({
+                            sourceRect: fullRect,
+                            targetLongSide: HIGH_DETAIL_SCAN_LONG_SIDE,
+                            inversionAttempts: 'attemptBoth',
+                        });
+                    }
+                }
 
-                const imageData = ctx.getImageData(0, 0, scaledWidth, scaledHeight);
-                const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: shouldUseHighDetail ? 'attemptBoth' : 'dontInvert',
-                });
+                for (const attempt of attempts) {
+                    const result = decodeJsQrRegion(
+                        video,
+                        canvas,
+                        ctx,
+                        attempt.sourceRect,
+                        attempt.targetLongSide,
+                        attempt.inversionAttempts
+                    );
 
-                if (code?.data) {
-                    const overlay = mapQrToOverlay(code, canvas, video);
-                    setQrOverlay(overlay);
-
-                    if (isTokenQrData(code.data)) {
-                        hasScannedRef.current = true;
-                        setScanPhase('detected');
-                        completeTimerRef.current = window.setTimeout(() => {
-                            const accepted = onScan(code.data);
-                            if (accepted === false) {
-                                hasScannedRef.current = false;
-                                setScanPhase('invalid');
-                                clearBoxLater();
-                                scheduleScan(scanFrame);
-                            }
-                        }, SUCCESS_DELAY_MS);
+                    if (result) {
+                        finishDecodedQr(result.data, result.overlay, scanFrame);
                         return;
                     }
-
-                    setScanPhase('invalid');
-                    clearBoxLater();
                 }
             } finally {
+                isScanning = false;
                 scheduleScan(scanFrame);
             }
         };
@@ -275,6 +563,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({ onScan, onClose }) => {
 
                 stream = nextStream;
                 await tuneCameraTrack(stream);
+                nativeDetector = await createNativeQrDetector();
 
                 const video = videoRef.current;
                 if (!video) return;
