@@ -57,6 +57,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
     // Toast State
     const [toastMessage, setToastMessage] = useState('');
     const [isToastVisible, setIsToastVisible] = useState(false);
+    const [toastId, setToastId] = useState(0);
 
     const [isScrolled, setIsScrolled] = useState(false);
 
@@ -152,18 +153,21 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
         return () => clearInterval(interval);
     }, []);
 
+    const showToast = useCallback((message: string) => {
+        setToastMessage(message);
+        setIsToastVisible(true);
+        setToastId(id => id + 1);
+    }, []);
+
+    const handleToastClose = useCallback(() => {
+        setIsToastVisible(false);
+    }, []);
+
     const handleCopy = (code: string) => {
         const cleanCode = code.replace(/\s/g, '');
         navigator.clipboard.writeText(cleanCode);
 
-        // Show Toast
-        setToastMessage(`已复制: ${cleanCode}`);
-        setIsToastVisible(true);
-
-        // Hide logic is handled inside Toast component via onclose,
-        // but we can also manually reset strict state if needed,
-        // though the component handles the timeout visually.
-        setTimeout(() => setIsToastVisible(false), 2000);
+        showToast(`已复制: ${cleanCode}`);
     };
 
     const handleAddToken = () => {
@@ -193,17 +197,17 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                 if (newTokens.length > 0) {
                     setTokens(prev => [...newTokens, ...prev]);
                     setOnTheTop('none');
-                    setToastMessage(`成功导入 ${newTokens.length} 个令牌`);
-                    setIsToastVisible(true);
-                    setTimeout(() => setIsToastVisible(false), 2000);
+                    showToast(`成功导入 ${newTokens.length} 个令牌`);
+                    return true;
                 } else {
                     alert("未找到有效的令牌");
+                    return false;
                 }
             } catch (error) {
                 console.error("Migration parsing error:", error);
                 alert("解析批量导入QR Code失败");
+                return false;
             }
-            return;
         }
 
         const parsed = parseOtpauthUri(uri);
@@ -222,13 +226,13 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
             }));
             setTokens(prev => [...newTokens, ...prev]);
             setOnTheTop('none');
-            setToastMessage(`成功导入 ${newTokens.length} 个令牌`);
-            setIsToastVisible(true);
-            setTimeout(() => setIsToastVisible(false), 2000);
+            showToast(`成功导入 ${newTokens.length} 个令牌`);
+            return true;
         } else {
             alert("无效的QR Code");
+            return false;
         }
-    }, [setOnTheTop]);
+    }, [setOnTheTop, showToast]);
 
     const confirmDelete = () => {
         if (tokenToDelete) {
@@ -266,9 +270,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
 
         setOnTheTop('none');
         resetEditForm();
-        setToastMessage('已更新令牌');
-        setIsToastVisible(true);
-        setTimeout(() => setIsToastVisible(false), 2000);
+        showToast('已更新令牌');
     };
 
     const resetForm = () => {
@@ -462,7 +464,8 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
             <Toast
                 message={toastMessage}
                 isVisible={isToastVisible}
-                onClose={() => setIsToastVisible(false)}
+                toastId={toastId}
+                onClose={handleToastClose}
             />
 
             {/* FAB Group */}
@@ -492,6 +495,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                             <motion.div variants={itemVariants} className="flex items-center gap-3">
                                 <span className="bg-surface-container-high text-on-surface text-sm font-bold px-3 py-1.5 rounded-xl shadow-sm border border-outline/10">扫描导入</span>
                                 <button
+                                    aria-label="扫描导入"
                                     onClick={() => {
                                         setOnTheTop('scanner');
                                     }}
@@ -505,6 +509,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
                             <motion.div variants={itemVariants} className="flex items-center gap-3">
                                 <span className="bg-surface-container-high text-on-surface text-sm font-bold px-3 py-1.5 rounded-xl shadow-sm border border-outline/10">手动输入</span>
                                 <button
+                                    aria-label="手动输入"
                                     onClick={() => {
                                         setOnTheTop('addModal');
                                     }}
@@ -519,6 +524,7 @@ const TokenList: React.FC<TokenListProps> = ({ onSettingsClick, onTheTop, setOnT
 
                 {/* Main FAB */}
                 <motion.button
+                    aria-label={onTheTop === 'fab' ? '关闭添加菜单' : '打开添加菜单'}
                     onClick={() => {
                         if (onTheTop === 'fab') {
                             setOnTheTop('none');

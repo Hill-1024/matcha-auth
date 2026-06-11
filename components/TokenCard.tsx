@@ -48,14 +48,13 @@ const TokenCard: React.FC<TokenCardProps> = ({ token, onCopy, onMoreClick, onUpd
 
   return (
       <motion.div
-          layout
           onClick={() => onCopy(token.code)}
           whileTap={{ scale: 0.97 }}
           transition={{ type: "spring", stiffness: 400, damping: 25 }}
           className={`group relative flex flex-col justify-between bg-surface-container shadow-sm border border-transparent hover:shadow-md hover:bg-surface-container-high transition-colors duration-200 cursor-pointer select-none ${cardDisplay === 'compact' ? 'rounded-2xl p-4' : 'rounded-3xl p-6'}`}
       >
-        <motion.div layout className={`flex items-start justify-between w-full ${cardDisplay === 'compact' ? 'mb-2' : 'mb-4'}`}>
-          <div className="flex items-center gap-4">
+        <div className={`flex items-start justify-between w-full ${cardDisplay === 'compact' ? 'mb-2' : 'mb-4'}`}>
+          <div className="flex min-w-0 items-center gap-4 pr-12">
             <div className={`flex items-center justify-center rounded-xl shrink-0 size-12 p-2 overflow-hidden ${!token.icon?.startsWith('http') ? 'bg-primary/10' : 'bg-white p-1'}`}>
               {token.icon?.startsWith('http') ? (
                   <img
@@ -70,27 +69,27 @@ const TokenCard: React.FC<TokenCardProps> = ({ token, onCopy, onMoreClick, onUpd
                   renderIcon(token.icon)
               )}
             </div>
-            <div className="flex flex-col">
-              <p className="text-on-surface text-lg font-bold leading-snug">{token.issuer}</p>
+            <div className="flex min-w-0 flex-col">
+              <p className="truncate text-on-surface text-lg font-bold leading-snug">{token.issuer}</p>
               <p className="text-on-surface-variant text-sm font-medium leading-none truncate max-w-[160px]">{token.account}</p>
             </div>
           </div>
-          <div
-              onPointerDown={(e) => e.stopPropagation()}
+          <button
+              type="button"
+              aria-label={`${token.issuer} 更多操作`}
+              onPointerDownCapture={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 onMoreClick(token);
               }}
-              className="absolute top-2 right-2 p-4 cursor-pointer z-20"
+              className="absolute top-2 right-2 z-20 flex size-14 items-center justify-center rounded-full text-on-surface-variant hover:bg-on-surface/10 hover:text-on-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors"
           >
-            <div className="text-on-surface-variant hover:text-on-surface rounded-full p-2 hover:bg-on-surface/10 transition-colors">
-              <MoreVertIcon className="w-6 h-6" />
-            </div>
-          </div>
-        </motion.div>
+            <MoreVertIcon className="w-6 h-6 shrink-0" />
+          </button>
+        </div>
 
-        <motion.div layout className="flex items-center justify-between mt-2 pl-1">
+        <div className="flex items-center justify-between mt-2 pl-1">
           <p className="text-primary text-[32px] font-bold tracking-[0.15em] tabular-nums leading-none font-display">
             {formattedCode}
           </p>
@@ -121,7 +120,7 @@ const TokenCard: React.FC<TokenCardProps> = ({ token, onCopy, onMoreClick, onUpd
               {token.remaining}
             </div>
           </div>
-        </motion.div>
+        </div>
       </motion.div>
   );
 };

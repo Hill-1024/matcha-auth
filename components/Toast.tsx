@@ -3,11 +3,12 @@ import React, { useEffect, useState } from 'react';
 interface ToastProps {
   message: string;
   isVisible: boolean;
+  toastId?: number;
   duration?: number;
   onClose?: () => void;
 }
 
-const Toast: React.FC<ToastProps> = ({ message, isVisible, duration = 2000, onClose }) => {
+const Toast: React.FC<ToastProps> = ({ message, isVisible, toastId = 0, duration = 2000, onClose }) => {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -21,7 +22,7 @@ const Toast: React.FC<ToastProps> = ({ message, isVisible, duration = 2000, onCl
     } else {
       setShow(false);
     }
-  }, [isVisible, duration, onClose]);
+  }, [isVisible, toastId, duration, onClose]);
 
   if (!show && !isVisible) return null;
 
