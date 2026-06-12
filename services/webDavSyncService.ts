@@ -218,6 +218,21 @@ export const subscribeTokenRemoteUpdates = (listener: (tokens: Token[]) => void)
   return () => window.removeEventListener(TOKENS_REMOTE_EVENT, handler);
 };
 
+export const testWebDavConnection = async (settings: WebDavSettings): Promise<void> => {
+  assertWebDavReady(settings);
+  try {
+    const response = await fetchWebDav(settings, buildRemoteUrl(settings, settings.remotePath), { method: 'GET' });
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(`认证失败 (${response.status})`);
+    }
+    if (!response.ok && response.status !== 404 && response.status !== 405 && response.status !== 207) {
+      throw new Error(`连接失败 (${response.status})`);
+    }
+  } catch (error) {
+    throw new Error(getWebDavNetworkErrorMessage(error));
+  }
+};
+
 export const performWebDavSync = async (reason = 'manual'): Promise<WebDavSyncResult> => {
   if (activeSync) {
     return activeSync;

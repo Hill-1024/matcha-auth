@@ -5,7 +5,6 @@ import {
   CheckIcon,
   CloudQueueIcon,
   InfoIcon,
-  WarningIcon,
   SettingsIcon,
 } from '../components/Icons';
 import {
@@ -22,6 +21,7 @@ import {
   saveWebDavSettings,
   subscribeWebDavRuntimeState,
   uploadLocalWebDavBackup,
+  testWebDavConnection,
 } from '../services/webDavSyncService';
 
 interface WebDavSettingsProps {
@@ -102,6 +102,8 @@ const WebDavSettings: React.FC<WebDavSettingsProps> = ({ onBack }) => {
   const [runtimeState, setRuntimeState] = useState<WebDavRuntimeState>(() => loadWebDavRuntimeState());
   const [actionError, setActionError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testSuccess, setTestSuccess] = useState(false);
 
   const isBusy = runtimeState.status === 'syncing';
   const lastSyncText = runtimeState.lastSyncAt
@@ -128,10 +130,25 @@ const WebDavSettings: React.FC<WebDavSettingsProps> = ({ onBack }) => {
 
   const runAction = async (action: () => Promise<unknown>) => {
     setActionError('');
+    setTestSuccess(false);
     try {
       await action();
     } catch (error) {
       setActionError(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  const runTestAction = async () => {
+    setActionError('');
+    setTestSuccess(false);
+    setIsTesting(true);
+    try {
+      await testWebDavConnection(settings);
+      setTestSuccess(true);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -169,11 +186,7 @@ const WebDavSettings: React.FC<WebDavSettingsProps> = ({ onBack }) => {
               </div>
            </div>
 
-           {/* Warning Banner */}
-           <div className="mb-6 rounded-[18px] bg-[#FAF1E3] dark:bg-[#3D3320] border border-[#F0DFBE] dark:border-[#57472A] p-4 text-[13px] text-[#8C6B32] dark:text-[#E8C27D] flex gap-3 leading-relaxed">
-             <WarningIcon className="w-[18px] h-[18px] shrink-0 mt-[2px]" />
-             <p>备份文件以<strong>明文 JSON</strong>上传，对话内容对你的 WebDAV 服务商可见。请确保使用 HTTPS 且账号安全。密码仅存在本设备，不经过服务器保留。</p>
-           </div>
+
 
            {/* Master Toggle */}
            <label className="flex items-center justify-between pb-4 mb-4 border-b border-outline/10 cursor-pointer">
@@ -262,7 +275,12 @@ const WebDavSettings: React.FC<WebDavSettingsProps> = ({ onBack }) => {
                           {actionError || runtimeState.lastError}
                       </motion.div>
                    )}
-                   {runtimeState.status === 'success' && !actionError && (
+                   {testSuccess && !actionError && (
+                      <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-2xl bg-secondary-container/50 border border-secondary/20 p-3 text-[13px] font-medium text-on-secondary-container flex items-center gap-2">
+                          <CheckIcon className="w-4 h-4 shrink-0" /> <span className="truncate">测试连接成功</span>
+                      </motion.div>
+                   )}
+                   {runtimeState.status === 'success' && !actionError && !testSuccess && (
                       <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-2xl bg-secondary-container/50 border border-secondary/20 p-3 text-[13px] font-medium text-on-secondary-container flex items-center gap-2">
                           <CheckIcon className="w-4 h-4 shrink-0" /> <span className="truncate">{STATUS_LABELS[runtimeState.status]} ({lastSyncText})</span>
                       </motion.div>
@@ -273,12 +291,21 @@ const WebDavSettings: React.FC<WebDavSettingsProps> = ({ onBack }) => {
                    <div className="flex flex-wrap items-center gap-3 mt-1">
                       <button
                           type="button"
+                          disabled={isBusy || isTesting}
+                          onClick={runTestAction}
+                          className="flex h-11 items-center justify-center gap-2 px-5 rounded-full border border-outline/20 font-bold text-[14px] hover:bg-on-surface/5 active:scale-[0.98] transition-all disabled:opacity-50"
+                      >
+                          <InfoIcon className="w-[18px] h-[18px]" />
+                          {isTesting ? '连接中...' : '测试连接'}
+                      </button>
+                      <button
+                          type="button"
                           disabled={isBusy}
                           onClick={() => runAction(() => performWebDavSync('manual'))}
                           className="flex h-11 items-center justify-center gap-2 px-5 rounded-full border border-outline/20 font-bold text-[14px] hover:bg-on-surface/5 active:scale-[0.98] transition-all disabled:opacity-50"
                       >
-                          <InfoIcon className="w-[18px] h-[18px]" />
-                          {isBusy && runtimeState.lastReason === 'manual' ? '同步中...' : '测试连接 (同步)'}
+                          <CloudQueueIcon className="w-[18px] h-[18px]" />
+                          {isBusy && runtimeState.lastReason === 'manual' ? '同步中...' : '双向同步'}
                       </button>
                       <button
                           type="button"
