@@ -129,8 +129,5 @@ input[type="password"]::-ms-clear {
 }
 input[type="password"]::-webkit-contacts-auto-fill-button,
 input[type="password"]::-webkit-credentials-auto-fill-button {
-  visibility: hidden;
-  pointer-events: none;
-  position: absolute;
-  right: 0;
+  display: none !important;
 }
