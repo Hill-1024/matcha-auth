@@ -4,8 +4,9 @@ import {
   ArrowBackIcon,
   CheckIcon,
   CloudQueueIcon,
-  ExportIcon,
   InfoIcon,
+  WarningIcon,
+  SettingsIcon,
 } from '../components/Icons';
 import {
   WebDavChangeUploadMode,
@@ -100,6 +101,7 @@ const WebDavSettings: React.FC<WebDavSettingsProps> = ({ onBack }) => {
   const [settings, setSettings] = useState<WebDavSettingsShape>(() => loadWebDavSettings());
   const [runtimeState, setRuntimeState] = useState<WebDavRuntimeState>(() => loadWebDavRuntimeState());
   const [actionError, setActionError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const isBusy = runtimeState.status === 'syncing';
   const lastSyncText = runtimeState.lastSyncAt
@@ -136,204 +138,210 @@ const WebDavSettings: React.FC<WebDavSettingsProps> = ({ onBack }) => {
   return (
     <div className="flex min-h-screen flex-col bg-background pb-10 text-on-background">
       {/* Header */}
-      <div className="sticky top-0 z-20 flex items-center bg-background/90 p-4 pt-12 backdrop-blur-xl">
-        <button
-          type="button"
-          onClick={onBack}
-          className="mr-2 flex size-10 shrink-0 items-center justify-center rounded-full text-on-surface transition-colors hover:bg-on-surface/10"
-        >
-          <ArrowBackIcon className="h-6 w-6" />
-        </button>
-        <h1 className="flex-1 text-2xl font-semibold tracking-tight text-on-surface">WebDAV 同步</h1>
+      <div className="sticky top-0 z-20 flex flex-col bg-background/90 px-4 pt-12 pb-3 backdrop-blur-xl">
+        <div className="flex items-center">
+          <button
+            type="button"
+            onClick={onBack}
+            className="mr-2 flex size-10 shrink-0 items-center justify-center rounded-full text-on-surface transition-colors hover:bg-on-surface/10"
+          >
+            <ArrowBackIcon className="h-6 w-6" />
+          </button>
+          <div className="flex flex-col">
+             <h1 className="text-xl font-bold tracking-tight text-on-surface">WebDAV 同步</h1>
+             <span className="text-[13px] text-on-surface-variant font-medium">备份与恢复</span>
+          </div>
+        </div>
       </div>
 
-      <div className="no-scrollbar flex flex-col gap-2 overflow-y-auto px-4 pb-20">
-        
-        {/* Hero Section */}
-        <div className="flex flex-col items-center justify-center py-6">
-            <div className="size-20 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-sm mb-4">
-                <CloudQueueIcon className="w-10 h-10" />
-            </div>
-            <h2 className="text-xl font-bold text-on-surface">云端数据备份</h2>
-            <p className="text-sm text-on-surface-variant mt-1 px-8 text-center leading-relaxed">
-                将您的令牌安全同步至个人的 WebDAV 服务器，跨设备保持数据一致。
-            </p>
-        </div>
+      <div className="no-scrollbar flex flex-col gap-4 overflow-y-auto px-4 pb-20 mt-2">
+        {/* Main Card */}
+        <div className="bg-surface-container-lowest dark:bg-surface-container rounded-[28px] shadow-sm border border-outline/5 dark:border-white/5 p-5">
+           
+           {/* Header Info */}
+           <div className="flex items-start gap-4 mb-5">
+              <div className="size-[52px] rounded-[20px] bg-primary-container/80 dark:bg-primary-container text-primary dark:text-on-primary-container flex items-center justify-center shrink-0">
+                 <CloudQueueIcon className="w-7 h-7" />
+              </div>
+              <div className="flex flex-col pt-1">
+                 <h2 className="text-[17px] font-bold text-on-surface">WebDAV 数据同步</h2>
+                 <p className="text-[13px] text-on-surface-variant mt-0.5 leading-snug pr-4">备份至自己的 WebDAV 云 (坚果云、Nextcloud 等)。</p>
+              </div>
+           </div>
 
-        {/* Master Toggle */}
-        <div className="bg-surface-container rounded-[28px] p-2 shadow-sm border border-outline/5 dark:border-white/5 mx-2">
-            <label className="flex items-center justify-between p-4 cursor-pointer rounded-[20px] hover:bg-surface-container-high transition-colors active:bg-surface-container-high">
-                <div className="flex flex-col min-w-0 pr-4">
-                    <span className="text-lg font-bold text-on-surface">启用 WebDAV 同步</span>
-                    <span className="text-sm text-on-surface-variant mt-0.5 truncate">{settings.enabled ? '已开启自动同步' : '当前已停用'}</span>
-                </div>
-                <button
-                    type="button"
-                    aria-pressed={settings.enabled}
-                    onClick={() => updateSetting('enabled', !settings.enabled)}
-                    className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${
-                        settings.enabled ? 'bg-primary' : 'bg-surface-variant border border-outline/20 dark:border-white/10'
-                    }`}
+           {/* Warning Banner */}
+           <div className="mb-6 rounded-[18px] bg-[#FAF1E3] dark:bg-[#3D3320] border border-[#F0DFBE] dark:border-[#57472A] p-4 text-[13px] text-[#8C6B32] dark:text-[#E8C27D] flex gap-3 leading-relaxed">
+             <WarningIcon className="w-[18px] h-[18px] shrink-0 mt-[2px]" />
+             <p>备份文件以<strong>明文 JSON</strong>上传，对话内容对你的 WebDAV 服务商可见。请确保使用 HTTPS 且账号安全。密码仅存在本设备，不经过服务器保留。</p>
+           </div>
+
+           {/* Master Toggle */}
+           <label className="flex items-center justify-between pb-4 mb-4 border-b border-outline/10 cursor-pointer">
+              <span className="text-[15px] font-bold text-on-surface">启用 WebDAV 同步</span>
+              <button
+                  type="button"
+                  aria-pressed={settings.enabled}
+                  onClick={() => updateSetting('enabled', !settings.enabled)}
+                  className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+                      settings.enabled ? 'bg-primary' : 'bg-surface-variant border border-outline/20 dark:border-white/10'
+                  }`}
+              >
+                  <motion.span
+                      className="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
+                      animate={{ x: settings.enabled ? 20 : 0 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  />
+              </button>
+           </label>
+
+           <AnimatePresence>
+             {settings.enabled && (
+                <motion.div
+                   initial={{ opacity: 0, height: 0 }}
+                   animate={{ opacity: 1, height: 'auto' }}
+                   exit={{ opacity: 0, height: 0 }}
+                   className="flex flex-col gap-4 overflow-hidden"
                 >
-                    <motion.span
-                        className="absolute left-1 top-1 h-6 w-6 rounded-full bg-white shadow-sm"
-                        animate={{ x: settings.enabled ? 24 : 0 }}
-                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    />
-                </button>
-            </label>
+                   {/* Inputs */}
+                   <label className="flex flex-col gap-1.5">
+                     <span className="text-[13px] font-bold text-on-surface-variant ml-1">服务器 URL</span>
+                     <input
+                         type="url"
+                         value={settings.serverUrl}
+                         onChange={(event) => updateSetting('serverUrl', event.target.value)}
+                         placeholder="https://dav.example.com/dav/"
+                         className="w-full rounded-[20px] border border-outline/20 bg-transparent px-4 py-3.5 text-[15px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40"
+                     />
+                   </label>
+
+                   <div className="grid grid-cols-2 gap-3">
+                     <label className="flex flex-col gap-1.5">
+                       <span className="text-[13px] font-bold text-on-surface-variant ml-1">用户名</span>
+                       <input
+                           type="text"
+                           value={settings.username}
+                           onChange={(event) => updateSetting('username', event.target.value)}
+                           placeholder="username"
+                           className="w-full rounded-[20px] border border-outline/20 bg-transparent px-4 py-3.5 text-[15px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40"
+                       />
+                     </label>
+                     <label className="flex flex-col gap-1.5 relative">
+                       <span className="text-[13px] font-bold text-on-surface-variant ml-1">密码</span>
+                       <input
+                           type={showPassword ? 'text' : 'password'}
+                           value={settings.password}
+                           onChange={(event) => updateSetting('password', event.target.value)}
+                           placeholder="password"
+                           className="w-full rounded-[20px] border border-outline/20 bg-transparent pl-4 pr-12 py-3.5 text-[15px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40"
+                       />
+                       <button
+                           type="button"
+                           onClick={() => setShowPassword(!showPassword)}
+                           className="absolute right-4 bottom-[13px] text-[13px] text-on-surface-variant font-bold active:opacity-50 transition-opacity"
+                       >
+                           {showPassword ? '隐藏' : '显示'}
+                       </button>
+                     </label>
+                   </div>
+
+                   <label className="flex flex-col gap-1.5 mb-2">
+                     <span className="text-[13px] font-bold text-on-surface-variant ml-1">备份目录（远端路径）</span>
+                     <input
+                         type="text"
+                         value={settings.remotePath}
+                         onChange={(event) => updateSetting('remotePath', event.target.value)}
+                         placeholder="/MatchaAuth/"
+                         className="w-full rounded-[20px] border border-outline/20 bg-transparent px-4 py-3.5 text-[15px] font-mono text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40"
+                     />
+                   </label>
+
+                   {/* Status Message */}
+                   <AnimatePresence>
+                   {(runtimeState.lastError || actionError) && (
+                      <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-2xl bg-error-container/50 border border-error/20 p-3 text-[13px] font-medium text-on-error-container break-words">
+                          {actionError || runtimeState.lastError}
+                      </motion.div>
+                   )}
+                   {runtimeState.status === 'success' && !actionError && (
+                      <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-2xl bg-secondary-container/50 border border-secondary/20 p-3 text-[13px] font-medium text-on-secondary-container flex items-center gap-2">
+                          <CheckIcon className="w-4 h-4 shrink-0" /> <span className="truncate">{STATUS_LABELS[runtimeState.status]} ({lastSyncText})</span>
+                      </motion.div>
+                   )}
+                   </AnimatePresence>
+
+                   {/* Buttons */}
+                   <div className="flex flex-wrap items-center gap-3 mt-1">
+                      <button
+                          type="button"
+                          disabled={isBusy}
+                          onClick={() => runAction(() => performWebDavSync('manual'))}
+                          className="flex h-11 items-center justify-center gap-2 px-5 rounded-full border border-outline/20 font-bold text-[14px] hover:bg-on-surface/5 active:scale-[0.98] transition-all disabled:opacity-50"
+                      >
+                          <InfoIcon className="w-[18px] h-[18px]" />
+                          {isBusy && runtimeState.lastReason === 'manual' ? '同步中...' : '测试连接 (同步)'}
+                      </button>
+                      <button
+                          type="button"
+                          disabled={isBusy}
+                          onClick={() => runAction(() => uploadLocalWebDavBackup('manual-upload'))}
+                          className="flex h-11 items-center justify-center gap-2 px-6 rounded-full bg-primary text-on-primary font-bold text-[14px] shadow-sm hover:shadow-md hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
+                      >
+                          <CloudQueueIcon className="w-[18px] h-[18px]" />
+                          {isBusy && runtimeState.lastReason === 'manual-upload' ? '备份中...' : '立即备份'}
+                      </button>
+                   </div>
+                </motion.div>
+             )}
+           </AnimatePresence>
         </div>
 
         <AnimatePresence>
-        {settings.enabled && (
-            <motion.div
-                initial={{ opacity: 0, height: 0, y: -20 }}
-                animate={{ opacity: 1, height: 'auto', y: 0 }}
-                exit={{ opacity: 0, height: 0, y: -20 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="flex flex-col gap-6 mt-6 px-2 overflow-hidden"
-            >
-                {/* Server Configuration */}
-                <div className="flex flex-col gap-3">
-                    <h3 className="text-sm font-bold text-primary px-2 tracking-wide uppercase">服务器配置</h3>
-                    <div className="flex flex-col gap-4 rounded-3xl bg-surface-container p-5 shadow-sm border border-outline/5 dark:border-white/5">
-                        <label className="flex flex-col gap-1.5">
-                            <span className="ml-1 text-xs font-bold text-on-surface-variant">服务器地址</span>
-                            <input
-                                type="url"
-                                value={settings.serverUrl}
-                                onChange={(event) => updateSetting('serverUrl', event.target.value)}
-                                placeholder="https://example.com/dav"
-                                className="w-full rounded-2xl border-none bg-surface-container-high px-4 py-3.5 text-sm text-on-surface transition-shadow placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary"
-                            />
-                        </label>
+          {settings.enabled && (
+             <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+             >
+                {/* Advanced Settings Card */}
+                <div className="bg-surface-container-lowest dark:bg-surface-container rounded-[28px] shadow-sm border border-outline/5 dark:border-white/5 p-5 flex flex-col gap-5">
+                    <h3 className="text-[14px] font-bold text-on-surface-variant flex items-center gap-2 uppercase tracking-wide">
+                       <SettingsIcon className="w-[18px] h-[18px]" /> 自动同步规则
+                    </h3>
+                    
+                    <div className="flex flex-col gap-2.5">
+                        <span className="text-[13px] font-bold text-on-surface px-1">开启应用时同步</span>
+                        <SegmentedControl
+                            options={LAUNCH_SYNC_OPTIONS}
+                            value={settings.launchSyncDelay}
+                            onChange={(value) => updateSetting('launchSyncDelay', value)}
+                        />
+                    </div>
 
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <label className="flex flex-col gap-1.5">
-                                <span className="ml-1 text-xs font-bold text-on-surface-variant">用户名</span>
-                                <input
-                                    type="text"
-                                    value={settings.username}
-                                    onChange={(event) => updateSetting('username', event.target.value)}
-                                    placeholder="Username"
-                                    className="w-full rounded-2xl border-none bg-surface-container-high px-4 py-3.5 text-sm text-on-surface transition-shadow placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary"
-                                />
-                            </label>
+                    <div className="h-px w-full bg-outline/10 rounded-full" />
 
-                            <label className="flex flex-col gap-1.5">
-                                <span className="ml-1 text-xs font-bold text-on-surface-variant">密码</span>
-                                <input
-                                    type="password"
-                                    value={settings.password}
-                                    onChange={(event) => updateSetting('password', event.target.value)}
-                                    placeholder="Password or App Token"
-                                    className="w-full rounded-2xl border-none bg-surface-container-high px-4 py-3.5 text-sm text-on-surface transition-shadow placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary"
-                                />
-                            </label>
-                        </div>
+                    <div className="flex flex-col gap-2.5">
+                        <span className="text-[13px] font-bold text-on-surface px-1">应用运行期间同步</span>
+                        <SegmentedControl
+                            options={PERIODIC_SYNC_OPTIONS}
+                            value={settings.periodicSyncInterval}
+                            onChange={(value) => updateSetting('periodicSyncInterval', value)}
+                        />
+                    </div>
 
-                        <label className="flex flex-col gap-1.5">
-                            <span className="ml-1 text-xs font-bold text-on-surface-variant">远程文件路径</span>
-                            <input
-                                type="text"
-                                value={settings.remotePath}
-                                onChange={(event) => updateSetting('remotePath', event.target.value)}
-                                placeholder="/MatchaAuth/tokens.json"
-                                className="w-full rounded-2xl border-none bg-surface-container-high px-4 py-3.5 font-mono text-sm text-on-surface transition-shadow placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary"
-                            />
-                        </label>
+                    <div className="h-px w-full bg-outline/10 rounded-full" />
+
+                    <div className="flex flex-col gap-2.5">
+                        <span className="text-[13px] font-bold text-on-surface px-1">数据变更时上传</span>
+                        <SegmentedControl
+                            options={CHANGE_UPLOAD_OPTIONS}
+                            value={settings.changeUploadMode}
+                            onChange={(value) => updateSetting('changeUploadMode', value)}
+                        />
                     </div>
                 </div>
-
-                {/* Sync Frequency */}
-                <div className="flex flex-col gap-3">
-                    <h3 className="text-sm font-bold text-primary px-2 tracking-wide uppercase">同步行为</h3>
-                    <div className="flex flex-col gap-5 rounded-3xl bg-surface-container p-5 shadow-sm border border-outline/5 dark:border-white/5">
-                        <div className="flex flex-col gap-2.5">
-                            <span className="text-sm font-bold text-on-surface px-1">开启应用时同步</span>
-                            <SegmentedControl
-                                options={LAUNCH_SYNC_OPTIONS}
-                                value={settings.launchSyncDelay}
-                                onChange={(value) => updateSetting('launchSyncDelay', value)}
-                            />
-                        </div>
-
-                        <div className="h-px w-full bg-outline/10 dark:bg-white/10 rounded-full" />
-
-                        <div className="flex flex-col gap-2.5">
-                            <span className="text-sm font-bold text-on-surface px-1">应用运行期间同步</span>
-                            <SegmentedControl
-                                options={PERIODIC_SYNC_OPTIONS}
-                                value={settings.periodicSyncInterval}
-                                onChange={(value) => updateSetting('periodicSyncInterval', value)}
-                            />
-                        </div>
-
-                        <div className="h-px w-full bg-outline/10 dark:bg-white/10 rounded-full" />
-
-                        <div className="flex flex-col gap-2.5">
-                            <span className="text-sm font-bold text-on-surface px-1">数据变更时上传</span>
-                            <SegmentedControl
-                                options={CHANGE_UPLOAD_OPTIONS}
-                                value={settings.changeUploadMode}
-                                onChange={(value) => updateSetting('changeUploadMode', value)}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Status and Manual Sync */}
-                <div className="flex flex-col gap-3">
-                    <h3 className="text-sm font-bold text-primary px-2 tracking-wide uppercase">当前状态</h3>
-                    <div className="flex flex-col gap-5 rounded-3xl bg-surface-container p-5 shadow-sm border border-outline/5 dark:border-white/5">
-                        
-                        <div className="flex items-center gap-4">
-                            <div className={`rounded-2xl p-3.5 flex items-center justify-center shrink-0 ${
-                                runtimeState.status === 'error'
-                                    ? 'bg-error-container text-on-error-container'
-                                    : runtimeState.status === 'success'
-                                    ? 'bg-secondary-container text-on-secondary-container'
-                                    : 'bg-primary-container text-on-primary-container'
-                            }`}>
-                                <InfoIcon className="h-7 w-7" />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                                <span className="text-lg font-bold text-on-surface leading-snug">{STATUS_LABELS[runtimeState.status]}</span>
-                                <span className="text-xs text-on-surface-variant truncate mt-0.5">{lastSyncText}</span>
-                            </div>
-                        </div>
-
-                        {(runtimeState.lastError || actionError) && (
-                            <div className="rounded-2xl bg-error-container/50 border border-error/20 p-4 text-sm font-medium text-on-error-container break-words">
-                                {actionError || runtimeState.lastError}
-                            </div>
-                        )}
-
-                        <div className="flex flex-col gap-3 mt-1">
-                            <button
-                                type="button"
-                                disabled={isBusy}
-                                onClick={() => runAction(() => performWebDavSync('manual'))}
-                                className="flex min-h-[48px] items-center justify-center rounded-full bg-primary text-on-primary font-bold text-sm shadow-sm transition-all hover:shadow-md hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
-                            >
-                                {isBusy ? '正在同步...' : '立即同步数据'}
-                            </button>
-                            <button
-                                type="button"
-                                disabled={isBusy}
-                                onClick={() => runAction(() => uploadLocalWebDavBackup('manual-upload'))}
-                                className="flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-surface-container-high text-on-surface font-bold text-sm shadow-sm transition-all hover:bg-surface-variant active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none border border-outline/10 dark:border-white/5"
-                            >
-                                <ExportIcon className="h-5 w-5" />
-                                仅上传当前数据
-                            </button>
-                        </div>
-
-                    </div>
-                </div>
-
-            </motion.div>
-        )}
+             </motion.div>
+          )}
         </AnimatePresence>
 
       </div>

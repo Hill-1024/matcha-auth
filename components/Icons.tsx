@@ -180,3 +180,8 @@ export const ViewCompactIcon = ({className}: IconProps) => (
         <path d="M4 5h16v4H4zm0 5h16v4H4zm0 5h16v4H4z"/>
     </svg>
 );
+export const WarningIcon = ({className}: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+        <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+    </svg>
+);
