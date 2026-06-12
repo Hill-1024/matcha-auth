@@ -208,16 +208,6 @@ const App: React.FC = () => {
   }, [currentPage, onTheTop]);
 
   return (
-      <>
-        {isNativePlatform && (
-            <div
-                aria-hidden="true"
-                className="pointer-events-none fixed inset-x-0 top-0 z-[45] bg-[var(--matcha-status-bar-background)]"
-                style={{
-                  height: 'max(24px, var(--matcha-status-bar-height), env(safe-area-inset-top, 0px))',
-                }}
-            />
-        )}
       <AnimatePresence mode="wait">
         {currentPage === 'home' && (
             <motion.div
@@ -289,7 +279,6 @@ const App: React.FC = () => {
             </motion.div>
         )}
       </AnimatePresence>
-      </>
   );
 };
 
